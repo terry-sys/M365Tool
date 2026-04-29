@@ -1,0 +1,37 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+artifacts/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs / temp
+*.log
+*.tmp
+*.cache
+*.pid
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Local secrets / environment
+.env
+.env.*
+
+# Release outputs (should be produced by CI or release pipeline)
+releases/
+
+# Local-only materials
+docs/
+tests/
+tools/

@@ -1,0 +1,602 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="TXT_007EF94F" xml:space="preserve">
+    <value>确认修复网络与激活环境</value>
+  </data>
+  <data name="TXT_020C3569" xml:space="preserve">
+    <value>64位</value>
+  </data>
+  <data name="TXT_027725F5" xml:space="preserve">
+    <value>确认删除 Teams 登录记录</value>
+  </data>
+  <data name="TXT_0313D4F4" xml:space="preserve">
+    <value>可以在这里查看清理或修复的执行进度与结果。</value>
+  </data>
+  <data name="TXT_07DBAF6B" xml:space="preserve">
+    <value>商业版</value>
+  </data>
+  <data name="TXT_09896705" xml:space="preserve">
+    <value>切换更新频道并按目标版本执行更新</value>
+  </data>
+  <data name="TXT_09D772D9" xml:space="preserve">
+    <value>当前频道</value>
+  </data>
+  <data name="TXT_0AE8097F" xml:space="preserve">
+    <value>开始处理</value>
+  </data>
+  <data name="TXT_0B47DA7F" xml:space="preserve">
+    <value>卸载 Office</value>
+  </data>
+  <data name="TXT_0BBCD57F" xml:space="preserve">
+    <value>固定到任务栏</value>
+  </data>
+  <data name="TXT_0BCA3294" xml:space="preserve">
+    <value>准备就绪</value>
+  </data>
+  <data name="TXT_105B49FB" xml:space="preserve">
+    <value>网络问题修复完成。</value>
+  </data>
+  <data name="TXT_10BCF11A" xml:space="preserve">
+    <value>Teams 已完成重置并清理缓存。</value>
+  </data>
+  <data name="TXT_111014E2" xml:space="preserve">
+    <value>企业版</value>
+  </data>
+  <data name="TXT_13CDC0B9" xml:space="preserve">
+    <value>Teams 登录记录处理已完成。
+
+请务必先重启电脑，再重新打开 New Teams 登录。</value>
+  </data>
+  <data name="TXT_1520175C" xml:space="preserve">
+    <value>清理 Teams 缓存、登录记录并修复会议插件</value>
+  </data>
+  <data name="TXT_19C5E074" xml:space="preserve">
+    <value>[风险]</value>
+  </data>
+  <data name="TXT_1C93B412" xml:space="preserve">
+    <value>重置新版 Teams，并同步清理本地缓存，不影响云端聊天记录和文件。</value>
+  </data>
+  <data name="TXT_1EB78C52" xml:space="preserve">
+    <value>正在准备安装...
+</value>
+  </data>
+  <data name="TXT_1F08F9DC" xml:space="preserve">
+    <value>将清除 21V 门户验证状态。是否继续？</value>
+  </data>
+  <data name="TXT_26715142" xml:space="preserve">
+    <value>[通过]</value>
+  </data>
+  <data name="TXT_27394DCF" xml:space="preserve">
+    <value>安装 M365 应用</value>
+  </data>
+  <data name="TXT_27B3F52D" xml:space="preserve">
+    <value>展开或折叠导航</value>
+  </data>
+  <data name="TXT_289CED0E" xml:space="preserve">
+    <value>常用操作</value>
+  </data>
+  <data name="TXT_29D04ACD" xml:space="preserve">
+    <value>当前登录用户</value>
+  </data>
+  <data name="TXT_2A813038" xml:space="preserve">
+    <value>立即安装</value>
+  </data>
+  <data name="TXT_2B8467D6" xml:space="preserve">
+    <value>版本加载失败</value>
+  </data>
+  <data name="TXT_2D36E63D" xml:space="preserve">
+    <value>正在删除 Teams 登录记录，请稍候...</value>
+  </data>
+  <data name="TXT_2DE3799E" xml:space="preserve">
+    <value>安装选项</value>
+  </data>
+  <data name="TXT_2EE53603" xml:space="preserve">
+    <value>兼容模式执行 Outlook 扫描，如 Outlook 未运行会自动转为离线扫描。</value>
+  </data>
+  <data name="TXT_30460DF1" xml:space="preserve">
+    <value>确认卸载</value>
+  </data>
+  <data name="TXT_304FF7FB" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="TXT_316B4622" xml:space="preserve">
+    <value>下载并执行微软官方清理工具，处理 Office 激活信息、WAM 账号和 WPJ 关联残留。</value>
+  </data>
+  <data name="TXT_3488E4F0" xml:space="preserve">
+    <value>修复网络与激活环境</value>
+  </data>
+  <data name="TXT_34957160" xml:space="preserve">
+    <value>开始扫描</value>
+  </data>
+  <data name="TXT_367DFD6B" xml:space="preserve">
+    <value>当前还没有可打开的卸载日志目录。</value>
+  </data>
+  <data name="TXT_36C3AFA0" xml:space="preserve">
+    <value>日历扫描</value>
+  </data>
+  <data name="TXT_3D76EC7D" xml:space="preserve">
+    <value>搜索语言</value>
+  </data>
+  <data name="TXT_3E217155" xml:space="preserve">
+    <value>清理本地登录记录，处理完成后必须先重启电脑，再重新打开 New Teams。</value>
+  </data>
+  <data name="TXT_42869F03" xml:space="preserve">
+    <value>可以在这里查看 Outlook 扫描结果、返回码以及日志目录。</value>
+  </data>
+  <data name="TXT_45004CA8" xml:space="preserve">
+    <value>自动检测已安装的 Office</value>
+  </data>
+  <data name="TXT_478F09F0" xml:space="preserve">
+    <value>卸载未完全完成，请查看结果详情。</value>
+  </data>
+  <data name="TXT_4804153A" xml:space="preserve">
+    <value>诊断操作已执行，请查看结果详情。</value>
+  </data>
+  <data name="TXT_487C79FB" xml:space="preserve">
+    <value>重置验证状态</value>
+  </data>
+  <data name="TXT_48A2A406" xml:space="preserve">
+    <value>正在执行 Outlook 离线扫描，请稍候...</value>
+  </data>
+  <data name="TXT_498CFE83" xml:space="preserve">
+    <value>Runtime Missing</value>
+  </data>
+  <data name="TXT_4A155788" xml:space="preserve">
+    <value>调用 SaRA 的 All 模式，尝试移除设备上的所有 Office 版本。</value>
+  </data>
+  <data name="TXT_4ADE1507" xml:space="preserve">
+    <value>排除应用</value>
+  </data>
+  <data name="TXT_4B058728" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="TXT_4CC3B385" xml:space="preserve">
+    <value>请先选择卸载目标。</value>
+  </data>
+  <data name="TXT_4D2D5D68" xml:space="preserve">
+    <value>保存设置</value>
+  </data>
+  <data name="TXT_4D43913A" xml:space="preserve">
+    <value>辅助操作</value>
+  </data>
+  <data name="TXT_4DB33EDB" xml:space="preserve">
+    <value>未获取到该频道的版本列表。</value>
+  </data>
+  <data name="TXT_50651CE3" xml:space="preserve">
+    <value>对 Outlook、Office 和 Windows 执行完整扫描，并生成综合诊断报告。</value>
+  </data>
+  <data name="TXT_510B3CC8" xml:space="preserve">
+    <value>重新检查</value>
+  </data>
+  <data name="TXT_51EACE34" xml:space="preserve">
+    <value>检查失败</value>
+  </data>
+  <data name="TXT_529C60CC" xml:space="preserve">
+    <value>安装产品</value>
+  </data>
+  <data name="TXT_52F50EAE" xml:space="preserve">
+    <value>常用入口</value>
+  </data>
+  <data name="TXT_5445208A" xml:space="preserve">
+    <value>正在修复 Outlook 的 Teams 会议插件，请稍候...</value>
+  </data>
+  <data name="TXT_5579C3D4" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="TXT_55B7B32F" xml:space="preserve">
+    <value>调用微软官方工具卸载 Office 并保留日志</value>
+  </data>
+  <data name="TXT_561A73A8" xml:space="preserve">
+    <value>这会按顺序执行以下操作：
+
+1. 关闭正在运行的 Teams 进程
+2. 重置新版 Teams 应用
+3. 清理新版 Teams 本地缓存
+
+此操作不会影响用户云端数据，聊天记录、团队和文件等内容仍保存在 Microsoft 365 云端。
+
+是否继续？</value>
+  </data>
+  <data name="TXT_570A963B" xml:space="preserve">
+    <value>正在执行 Outlook 日历扫描，请稍候...</value>
+  </data>
+  <data name="TXT_5742BD51" xml:space="preserve">
+    <value>开始清理过程...</value>
+  </data>
+  <data name="TXT_57454017" xml:space="preserve">
+    <value>设置已保存。</value>
+  </data>
+  <data name="TXT_590C76E2" xml:space="preserve">
+    <value>位数</value>
+  </data>
+  <data name="TXT_5956B122" xml:space="preserve">
+    <value>32位</value>
+  </data>
+  <data name="TXT_5AC09B9B" xml:space="preserve">
+    <value>打开日志目录</value>
+  </data>
+  <data name="TXT_5BB51873" xml:space="preserve">
+    <value>安装前检查</value>
+  </data>
+  <data name="TXT_5FEECD19" xml:space="preserve">
+    <value>Teams 处理已执行，请查看结果详情。</value>
+  </data>
+  <data name="TXT_62894843" xml:space="preserve">
+    <value>尚未生成报告</value>
+  </data>
+  <data name="TXT_628F6668" xml:space="preserve">
+    <value>调用 Microsoft Get Help 官方场景，修复 Outlook 中的 Teams Meeting Add-in。</value>
+  </data>
+  <data name="TXT_638056A2" xml:space="preserve">
+    <value>仅针对新版 Teams，可重置并清理缓存、删除本地登录记录，以及修复 Outlook 的 Teams 会议插件。</value>
+  </data>
+  <data name="TXT_63FF4A6D" xml:space="preserve">
+    <value>让微软官方 SaRA 自动检测当前设备上的 Office 版本并尝试卸载。若设备上同时存在多个版本，SaRA 会返回多版本结果码。</value>
+  </data>
+  <data name="TXT_655D8A44" xml:space="preserve">
+    <value>频道</value>
+  </data>
+  <data name="TXT_67936359" xml:space="preserve">
+    <value>这会删除新版 Teams 的本地登录记录，并清理以下目录中的文件和文件夹：
+
+- %LocalAppData%\Microsoft\IdentityCache
+- %LocalAppData%\Microsoft\TokenBroker
+- %LocalAppData%\Packages\MSTeams_8wekyb3d8bbwe
+- %LocalAppData%\Packages\Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy
+- %LocalAppData%\Microsoft\OneAuth
+
+此操作不会影响用户云端数据，但完成后必须重启电脑。若不重启就直接打开 New Teams，可能出现 Error 1001。
+
+是否继续？</value>
+  </data>
+  <data name="TXT_67AA5312" xml:space="preserve">
+    <value>Office 更新频道切换完成，已拉起 Office 更新界面。</value>
+  </data>
+  <data name="TXT_68767070" xml:space="preserve">
+    <value>确认切换更新频道</value>
+  </data>
+  <data name="TXT_68E93723" xml:space="preserve">
+    <value>修复代理设置、网络环境和激活依赖</value>
+  </data>
+  <data name="TXT_6995EC0C" xml:space="preserve">
+    <value>未检测到 Office ClickToRun 客户端。</value>
+  </data>
+  <data name="TXT_69D0FA6B" xml:space="preserve">
+    <value>正在加载版本列表，请稍候...</value>
+  </data>
+  <data name="TXT_6A7A9025" xml:space="preserve">
+    <value>确定要清理激活信息吗？此操作将执行微软官方清理工具，建议关闭 Office 后继续。</value>
+  </data>
+  <data name="TXT_6AE78AEA" xml:space="preserve">
+    <value>确认执行 Outlook 全量扫描</value>
+  </data>
+  <data name="TXT_6B298729" xml:space="preserve">
+    <value>正在准备安装...</value>
+  </data>
+  <data name="TXT_735FC321" xml:space="preserve">
+    <value>离线扫描</value>
+  </data>
+  <data name="TXT_754E1B6E" xml:space="preserve">
+    <value>Office 365 清理过程已完成。</value>
+  </data>
+  <data name="TXT_758E71E4" xml:space="preserve">
+    <value>目标版本</value>
+  </data>
+  <data name="TXT_763D58D7" xml:space="preserve">
+    <value>静默安装</value>
+  </data>
+  <data name="TXT_76840890" xml:space="preserve">
+    <value>请先选择目标频道。</value>
+  </data>
+  <data name="TXT_77D9476A" xml:space="preserve">
+    <value>正在执行 Outlook 全量扫描，请稍候...</value>
+  </data>
+  <data name="TXT_78166B20" xml:space="preserve">
+    <value>维护功能</value>
+  </data>
+  <data name="TXT_785DBE81" xml:space="preserve">
+    <value>打开日志目录</value>
+  </data>
+  <data name="TXT_78614298" xml:space="preserve">
+    <value>M365 应用</value>
+  </data>
+  <data name="TXT_79058DA6" xml:space="preserve">
+    <value>重置并清理缓存</value>
+  </data>
+  <data name="TXT_79DB7A01" xml:space="preserve">
+    <value>不适用</value>
+  </data>
+  <data name="TXT_7A3588BB" xml:space="preserve">
+    <value>确认修复 Outlook 会议插件</value>
+  </data>
+  <data name="TXT_7BAFDF3F" xml:space="preserve">
+    <value>打开缓存目录</value>
+  </data>
+  <data name="TXT_7E6E9C27" xml:space="preserve">
+    <value>匹配系统语言</value>
+  </data>
+  <data name="TXT_7FA11407" xml:space="preserve">
+    <value>修复操作已执行，请查看结果详情。</value>
+  </data>
+  <data name="TXT_7FA7C752" xml:space="preserve">
+    <value>这会调用 Microsoft Get Help 官方场景，使用 CalCheck 扫描 Outlook 日历中的已知问题，并生成诊断结果。
+
+是否继续？</value>
+  </data>
+  <data name="TXT_802B283F" xml:space="preserve">
+    <value>更新频道</value>
+  </data>
+  <data name="TXT_80F11CB0" xml:space="preserve">
+    <value>（系统默认）</value>
+  </data>
+  <data name="TXT_82D75311" xml:space="preserve">
+    <value>频道设置</value>
+  </data>
+  <data name="TXT_83E71839" xml:space="preserve">
+    <value>卸载</value>
+  </data>
+  <data name="TXT_84107F4C" xml:space="preserve">
+    <value>切换后禁用自动更新</value>
+  </data>
+  <data name="TXT_86F6F601" xml:space="preserve">
+    <value>所有 Office 版本</value>
+  </data>
+  <data name="TXT_87D8B663" xml:space="preserve">
+    <value>验证未通过</value>
+  </data>
+  <data name="TXT_8DD31791" xml:space="preserve">
+    <value>完成</value>
+  </data>
+  <data name="TXT_8E7FB028" xml:space="preserve">
+    <value>清理完成。</value>
+  </data>
+  <data name="TXT_8EF39016" xml:space="preserve">
+    <value>集中执行激活清理和网络与激活环境修复，用于处理常见的 Microsoft 365 激活问题。</value>
+  </data>
+  <data name="TXT_8F99732C" xml:space="preserve">
+    <value>确认处理 Teams</value>
+  </data>
+  <data name="TXT_8FE1E625" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="TXT_91804C0A" xml:space="preserve">
+    <value>发现需要关注的检查项</value>
+  </data>
+  <data name="TXT_94967E29" xml:space="preserve">
+    <value>安装任务已启动完成</value>
+  </data>
+  <data name="TXT_95BAC39A" xml:space="preserve">
+    <value>清理与修复</value>
+  </data>
+  <data name="TXT_9A73DB9B" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="TXT_9A7E63A2" xml:space="preserve">
+    <value>配置语言与 21V 门户验证状态。</value>
+  </data>
+  <data name="TXT_9C42C288" xml:space="preserve">
+    <value>下一步建议：</value>
+  </data>
+  <data name="TXT_9CF82695" xml:space="preserve">
+    <value>处理结果</value>
+  </data>
+  <data name="TXT_9D3789E2" xml:space="preserve">
+    <value>Outlook 的 Teams 会议插件修复已完成，请重新启动 Outlook 检查。</value>
+  </data>
+  <data name="TXT_9FDDA1FF" xml:space="preserve">
+    <value>Outlook 工具</value>
+  </data>
+  <data name="TXT_9FF6FB65" xml:space="preserve">
+    <value>当前检测到的 Office</value>
+  </data>
+  <data name="TXT_A01CBA93" xml:space="preserve">
+    <value>当前状态：尚未完成 21V 门户验证。</value>
+  </data>
+  <data name="TXT_A02CECEB" xml:space="preserve">
+    <value>确定要修复网络与激活环境吗？这会修改代理和 Internet Settings 相关配置。</value>
+  </data>
+  <data name="TXT_A1407514" xml:space="preserve">
+    <value>确认执行 Outlook 离线扫描</value>
+  </data>
+  <data name="TXT_A183C9EF" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="TXT_A2277157" xml:space="preserve">
+    <value>正在处理 Teams，请稍候...</value>
+  </data>
+  <data name="TXT_A34CDA62" xml:space="preserve">
+    <value>半年频道</value>
+  </data>
+  <data name="TXT_A6C0AB34" xml:space="preserve">
+    <value>可以在这里查看 Teams 处理结果、已关闭进程、已处理目录和下一步建议。</value>
+  </data>
+  <data name="TXT_A7A6B81C" xml:space="preserve">
+    <value>修改 IE / WinHTTP 相关设置与代理配置，帮助恢复 Office 激活所需网络环境。</value>
+  </data>
+  <data name="TXT_B11CBAB7" xml:space="preserve">
+    <value>请先完成 21V 门户登录验证，再使用其他功能。</value>
+  </data>
+  <data name="TXT_B390E397" xml:space="preserve">
+    <value>正在检查系统环境...</value>
+  </data>
+  <data name="TXT_B3B6B7DE" xml:space="preserve">
+    <value>最新版本</value>
+  </data>
+  <data name="TXT_B55BDB5E" xml:space="preserve">
+    <value>清理激活信息</value>
+  </data>
+  <data name="TXT_B5781C83" xml:space="preserve">
+    <value>未命名语言</value>
+  </data>
+  <data name="TXT_B677DDFA" xml:space="preserve">
+    <value>执行 Outlook 扫描并生成诊断报告</value>
+  </data>
+  <data name="TXT_B6EBFAF2" xml:space="preserve">
+    <value>未知时间</value>
+  </data>
+  <data name="TXT_B82858D4" xml:space="preserve">
+    <value>当前还没有可打开的 Outlook 诊断日志目录。</value>
+  </data>
+  <data name="TXT_BBB713D9" xml:space="preserve">
+    <value>开始切换</value>
+  </data>
+  <data name="TXT_BD38521C" xml:space="preserve">
+    <value>卸载订阅版 Office，例如 Microsoft 365 Apps for enterprise / business。</value>
+  </data>
+  <data name="TXT_BD87AFCC" xml:space="preserve">
+    <value>会议插件修复</value>
+  </data>
+  <data name="TXT_BECC0E51" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="TXT_C0742761" xml:space="preserve">
+    <value>开始卸载</value>
+  </data>
+  <data name="TXT_C28C66D0" xml:space="preserve">
+    <value>Office 卸载已完成，可查看日志目录。</value>
+  </data>
+  <data name="TXT_C30F6435" xml:space="preserve">
+    <value>确认安装</value>
+  </data>
+  <data name="TXT_C45B97B5" xml:space="preserve">
+    <value>安装失败</value>
+  </data>
+  <data name="TXT_C6847124" xml:space="preserve">
+    <value>最近报告目录</value>
+  </data>
+  <data name="TXT_C8150551" xml:space="preserve">
+    <value>可以在这里查看频道切换的状态、目标版本和执行结果。</value>
+  </data>
+  <data name="TXT_C91FA2DE" xml:space="preserve">
+    <value>Microsoft 365 运维工作台</value>
+  </data>
+  <data name="TXT_CD6458DE" xml:space="preserve">
+    <value>卸载目标</value>
+  </data>
+  <data name="TXT_CD667AD6" xml:space="preserve">
+    <value>正在加载 Microsoft 官方版本列表...</value>
+  </data>
+  <data name="TXT_CD9A49F4" xml:space="preserve">
+    <value>用于打开新版 Teams 缓存目录，便于人工检查处理结果。</value>
+  </data>
+  <data name="TXT_D2B4DFD2" xml:space="preserve">
+    <value>清理激活残留、账户关联和授权痕迹</value>
+  </data>
+  <data name="TXT_D475DC02" xml:space="preserve">
+    <value>可以在这里查看卸载结果、返回码、进程处理摘要和下一步建议。</value>
+  </data>
+  <data name="TXT_DA298567" xml:space="preserve">
+    <value>删除登录记录</value>
+  </data>
+  <data name="TXT_DAD1AFFF" xml:space="preserve">
+    <value>欢迎使用 21V M365助手。</value>
+  </data>
+  <data name="TXT_DC839411" xml:space="preserve">
+    <value>版本类型</value>
+  </data>
+  <data name="TXT_DE903B3C" xml:space="preserve">
+    <value>未完成 21V 门户登录验证，无法使用该工具。</value>
+  </data>
+  <data name="TXT_DF1456D1" xml:space="preserve">
+    <value>未检测到已登录用户</value>
+  </data>
+  <data name="TXT_DF537AB2" xml:space="preserve">
+    <value>修复网络与激活环境</value>
+  </data>
+  <data name="TXT_E02379A1" xml:space="preserve">
+    <value>Outlook 诊断已完成，可查看报告目录。</value>
+  </data>
+  <data name="TXT_E1CD8F04" xml:space="preserve">
+    <value>未检测到已安装的 Office。</value>
+  </data>
+  <data name="TXT_E32A6113" xml:space="preserve">
+    <value>目标频道</value>
+  </data>
+  <data name="TXT_E447C4E0" xml:space="preserve">
+    <value>访问受限</value>
+  </data>
+  <data name="TXT_E4A9DBBE" xml:space="preserve">
+    <value>这会调用 Microsoft Get Help 官方场景，对 Outlook、Office、Windows 和邮箱配置执行完整扫描，并生成诊断报告。
+
+是否继续？</value>
+  </data>
+  <data name="TXT_E83ACCAD" xml:space="preserve">
+    <value>切换 Office 更新频道，并可选择最新版本或固定版本触发更新。</value>
+  </data>
+  <data name="TXT_EB22D76F" xml:space="preserve">
+    <value>这会调用 Microsoft Get Help 官方场景，自动检查并尝试恢复 Outlook 的 Teams Meeting Add-in。
+
+执行过程中可能会关闭 Outlook。
+此功能用于 Outlook 中的 Teams 会议插件，不会影响 Teams 云端数据。
+
+是否继续？</value>
+  </data>
+  <data name="TXT_EE71B7A6" xml:space="preserve">
+    <value>Open Failed</value>
+  </data>
+  <data name="TXT_EF36D901" xml:space="preserve">
+    <value>切换更新频道</value>
+  </data>
+  <data name="TXT_EF66A976" xml:space="preserve">
+    <value>确认清理激活信息</value>
+  </data>
+  <data name="TXT_EFA2E7BB" xml:space="preserve">
+    <value>使用微软官方 SaRA Office Uninstall 场景，按目标版本执行卸载并保留日志。</value>
+  </data>
+  <data name="TXT_F010A345" xml:space="preserve">
+    <value>全量扫描</value>
+  </data>
+  <data name="TXT_F2F1E5EB" xml:space="preserve">
+    <value>确认执行 Outlook 日历扫描</value>
+  </data>
+  <data name="TXT_F36FC0DC" xml:space="preserve">
+    <value>安装结果和执行日志会显示在这里</value>
+  </data>
+  <data name="TXT_F38D9CF1" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="TXT_F3E79A26" xml:space="preserve">
+    <value>新版 Outlook</value>
+  </data>
+  <data name="TXT_F690C889" xml:space="preserve">
+    <value>调用 CalCheck 检查 Outlook 日历中的已知问题并生成结果。</value>
+  </data>
+  <data name="TXT_F7567DDA" xml:space="preserve">
+    <value>选择安装产品、位数和频道，然后执行在线安装与环境检查</value>
+  </data>
+  <data name="TXT_F79F4B3F" xml:space="preserve">
+    <value>这会调用 Microsoft Get Help 官方场景，以兼容模式执行 Outlook 扫描并生成诊断报告。
+
+是否继续？</value>
+  </data>
+  <data name="TXT_F7EF9B3E" xml:space="preserve">
+    <value>在线安装 M365 应用、Project 或 Visio</value>
+  </data>
+  <data name="TXT_FBF2EF54" xml:space="preserve">
+    <value>检查完成</value>
+  </data>
+  <data name="TXT_FD435876" xml:space="preserve">
+    <value>Teams 工具</value>
+  </data>
+  <data name="TXT_FE6125A8" xml:space="preserve">
+    <value>调用 Microsoft Get Help 官方场景执行 Outlook 全量扫描、离线扫描和日历扫描。</value>
+  </data>
+  <data name="TXT_FE99539E" xml:space="preserve">
+    <value>正在修复网络与激活环境...</value>
+  </data>
+  <data name="TXT_FF116838" xml:space="preserve">
+    <value>正在准备新版 Office 卸载引擎...</value>
+  </data>
+</root>

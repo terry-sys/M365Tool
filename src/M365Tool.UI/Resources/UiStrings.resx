@@ -1,0 +1,591 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="TXT_007EF94F" xml:space="preserve">
+    <value>Confirm Repair Network/Activation</value>
+  </data>
+  <data name="TXT_020C3569" xml:space="preserve">
+    <value>64-bit</value>
+  </data>
+  <data name="TXT_027725F5" xml:space="preserve">
+    <value>Confirm Delete Teams Sign-in Records</value>
+  </data>
+  <data name="TXT_0313D4F4" xml:space="preserve">
+    <value>View cleanup/repair progress and results here.</value>
+  </data>
+  <data name="TXT_07DBAF6B" xml:space="preserve">
+    <value>Business</value>
+  </data>
+  <data name="TXT_09896705" xml:space="preserve">
+    <value>Switch channels and update to target build</value>
+  </data>
+  <data name="TXT_09D772D9" xml:space="preserve">
+    <value>Current Channel</value>
+  </data>
+  <data name="TXT_0AE8097F" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="TXT_0B47DA7F" xml:space="preserve">
+    <value>Uninstall Office</value>
+  </data>
+  <data name="TXT_0BBCD57F" xml:space="preserve">
+    <value>Pin to taskbar</value>
+  </data>
+  <data name="TXT_0BCA3294" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="TXT_105B49FB" xml:space="preserve">
+    <value>Network repair completed.</value>
+  </data>
+  <data name="TXT_10BCF11A" xml:space="preserve">
+    <value>Teams reset and cache cleanup completed.</value>
+  </data>
+  <data name="TXT_111014E2" xml:space="preserve">
+    <value>Enterprise</value>
+  </data>
+  <data name="TXT_13CDC0B9" xml:space="preserve">
+    <value>Teams sign-in cleanup completed.
+
+Please restart your PC before opening New Teams again.</value>
+  </data>
+  <data name="TXT_1520175C" xml:space="preserve">
+    <value>Reset Teams cache/sign-in and repair meeting add-in</value>
+  </data>
+  <data name="TXT_19C5E074" xml:space="preserve">
+    <value>[Risk]</value>
+  </data>
+  <data name="TXT_1C93B412" xml:space="preserve">
+    <value>Reset new Teams and clear local cache without affecting cloud chats/files.</value>
+  </data>
+  <data name="TXT_1EB78C52" xml:space="preserve">
+    <value>Preparing installation...
+</value>
+  </data>
+  <data name="TXT_1F08F9DC" xml:space="preserve">
+    <value>This will clear 21V portal verification status. Continue?</value>
+  </data>
+  <data name="TXT_26715142" xml:space="preserve">
+    <value>[Pass]</value>
+  </data>
+  <data name="TXT_27394DCF" xml:space="preserve">
+    <value>Install M365 Apps</value>
+  </data>
+  <data name="TXT_27B3F52D" xml:space="preserve">
+    <value>Expand or collapse navigation</value>
+  </data>
+  <data name="TXT_289CED0E" xml:space="preserve">
+    <value>Common Tasks</value>
+  </data>
+  <data name="TXT_29D04ACD" xml:space="preserve">
+    <value>Current Signed-in User</value>
+  </data>
+  <data name="TXT_2A813038" xml:space="preserve">
+    <value>Install Now</value>
+  </data>
+  <data name="TXT_2B8467D6" xml:space="preserve">
+    <value>Version Load Failed</value>
+  </data>
+  <data name="TXT_2D36E63D" xml:space="preserve">
+    <value>Deleting Teams sign-in records, please wait...</value>
+  </data>
+  <data name="TXT_2DE3799E" xml:space="preserve">
+    <value>Install Options</value>
+  </data>
+  <data name="TXT_2EE53603" xml:space="preserve">
+    <value>Run Outlook scan in compatibility mode. If Outlook is not running, it should fall back to offline scan.</value>
+  </data>
+  <data name="TXT_30460DF1" xml:space="preserve">
+    <value>Confirm Uninstall</value>
+  </data>
+  <data name="TXT_304FF7FB" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="TXT_316B4622" xml:space="preserve">
+    <value>Run official Microsoft cleanup tool to remove Office activation remnants, WAM account and WPJ traces.</value>
+  </data>
+  <data name="TXT_3488E4F0" xml:space="preserve">
+    <value>Repair Network &amp; Activation</value>
+  </data>
+  <data name="TXT_34957160" xml:space="preserve">
+    <value>Start Scan</value>
+  </data>
+  <data name="TXT_367DFD6B" xml:space="preserve">
+    <value>No uninstall log folder is available yet.</value>
+  </data>
+  <data name="TXT_36C3AFA0" xml:space="preserve">
+    <value>Calendar Scan</value>
+  </data>
+  <data name="TXT_3D76EC7D" xml:space="preserve">
+    <value>Search language</value>
+  </data>
+  <data name="TXT_3E217155" xml:space="preserve">
+    <value>Clear local sign-in records. Restart PC before opening New Teams again.</value>
+  </data>
+  <data name="TXT_42869F03" xml:space="preserve">
+    <value>View Outlook scan results, return codes and log folder here.</value>
+  </data>
+  <data name="TXT_45004CA8" xml:space="preserve">
+    <value>Auto-detect installed Office</value>
+  </data>
+  <data name="TXT_478F09F0" xml:space="preserve">
+    <value>Uninstall did not fully complete. Please review the result details.</value>
+  </data>
+  <data name="TXT_4804153A" xml:space="preserve">
+    <value>Diagnostics action completed. Please review details.</value>
+  </data>
+  <data name="TXT_487C79FB" xml:space="preserve">
+    <value>Reset Verification</value>
+  </data>
+  <data name="TXT_48A2A406" xml:space="preserve">
+    <value>Running Outlook offline scan, please wait...</value>
+  </data>
+  <data name="TXT_498CFE83" xml:space="preserve">
+    <value>Runtime Missing</value>
+  </data>
+  <data name="TXT_4A155788" xml:space="preserve">
+    <value>Use SaRA All mode to remove all installed Office versions.</value>
+  </data>
+  <data name="TXT_4ADE1507" xml:space="preserve">
+    <value>Exclude Apps</value>
+  </data>
+  <data name="TXT_4B058728" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="TXT_4CC3B385" xml:space="preserve">
+    <value>Please select an uninstall target first.</value>
+  </data>
+  <data name="TXT_4D2D5D68" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="TXT_4D43913A" xml:space="preserve">
+    <value>Helper Actions</value>
+  </data>
+  <data name="TXT_4DB33EDB" xml:space="preserve">
+    <value>No version list was retrieved for this channel.</value>
+  </data>
+  <data name="TXT_50651CE3" xml:space="preserve">
+    <value>Run comprehensive scan for Outlook, Office and Windows, and generate diagnostics report.</value>
+  </data>
+  <data name="TXT_510B3CC8" xml:space="preserve">
+    <value>Recheck</value>
+  </data>
+  <data name="TXT_51EACE34" xml:space="preserve">
+    <value>Check failed</value>
+  </data>
+  <data name="TXT_529C60CC" xml:space="preserve">
+    <value>Product</value>
+  </data>
+  <data name="TXT_52F50EAE" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="TXT_5445208A" xml:space="preserve">
+    <value>Repairing Outlook Teams meeting add-in, please wait...</value>
+  </data>
+  <data name="TXT_5579C3D4" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="TXT_55B7B32F" xml:space="preserve">
+    <value>Use official Microsoft tool to uninstall Office with logs</value>
+  </data>
+  <data name="TXT_561A73A8" xml:space="preserve">
+    <value>This will:
+
+1. Close running Teams processes
+2. Reset new Teams app
+3. Clear local Teams cache
+
+Cloud data remains intact. Continue?</value>
+  </data>
+  <data name="TXT_570A963B" xml:space="preserve">
+    <value>Running Outlook calendar scan, please wait...</value>
+  </data>
+  <data name="TXT_5742BD51" xml:space="preserve">
+    <value>Starting cleanup...</value>
+  </data>
+  <data name="TXT_57454017" xml:space="preserve">
+    <value>Settings saved.</value>
+  </data>
+  <data name="TXT_590C76E2" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="TXT_5956B122" xml:space="preserve">
+    <value>32-bit</value>
+  </data>
+  <data name="TXT_5AC09B9B" xml:space="preserve">
+    <value>Open Log</value>
+  </data>
+  <data name="TXT_5BB51873" xml:space="preserve">
+    <value>Pre-check</value>
+  </data>
+  <data name="TXT_5FEECD19" xml:space="preserve">
+    <value>Teams processing completed. Please review details.</value>
+  </data>
+  <data name="TXT_62894843" xml:space="preserve">
+    <value>No report generated yet</value>
+  </data>
+  <data name="TXT_628F6668" xml:space="preserve">
+    <value>Run official Microsoft Get Help scenario to repair Teams Meeting Add-in in Outlook.</value>
+  </data>
+  <data name="TXT_638056A2" xml:space="preserve">
+    <value>For new Teams only: reset/clear cache, remove local sign-in records, and repair Outlook Teams meeting add-in.</value>
+  </data>
+  <data name="TXT_63FF4A6D" xml:space="preserve">
+    <value>Let Microsoft SaRA auto-detect installed Office versions and attempt uninstall. If multiple versions exist, SaRA returns multi-version result codes.</value>
+  </data>
+  <data name="TXT_655D8A44" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="TXT_67936359" xml:space="preserve">
+    <value>This removes local sign-in records and clears required folders.
+Cloud data remains safe, but you must restart the computer before opening New Teams again.
+
+Continue?</value>
+  </data>
+  <data name="TXT_67AA5312" xml:space="preserve">
+    <value>Office update channel switch completed and Office update UI has been launched.</value>
+  </data>
+  <data name="TXT_68767070" xml:space="preserve">
+    <value>Confirm Channel Switch</value>
+  </data>
+  <data name="TXT_68E93723" xml:space="preserve">
+    <value>Repair proxy/network and activation prerequisites</value>
+  </data>
+  <data name="TXT_6995EC0C" xml:space="preserve">
+    <value>Office ClickToRun client was not detected.</value>
+  </data>
+  <data name="TXT_69D0FA6B" xml:space="preserve">
+    <value>Loading versions, please wait...</value>
+  </data>
+  <data name="TXT_6A7A9025" xml:space="preserve">
+    <value>Are you sure to clean activation info? This runs official Microsoft cleanup tool. Close Office first.</value>
+  </data>
+  <data name="TXT_6AE78AEA" xml:space="preserve">
+    <value>Confirm Outlook Full Scan</value>
+  </data>
+  <data name="TXT_6B298729" xml:space="preserve">
+    <value>Preparing installation...</value>
+  </data>
+  <data name="TXT_735FC321" xml:space="preserve">
+    <value>Offline Scan</value>
+  </data>
+  <data name="TXT_754E1B6E" xml:space="preserve">
+    <value>Office 365 cleanup completed.</value>
+  </data>
+  <data name="TXT_758E71E4" xml:space="preserve">
+    <value>Target Version</value>
+  </data>
+  <data name="TXT_763D58D7" xml:space="preserve">
+    <value>Silent install</value>
+  </data>
+  <data name="TXT_76840890" xml:space="preserve">
+    <value>Please select a target channel first.</value>
+  </data>
+  <data name="TXT_77D9476A" xml:space="preserve">
+    <value>Running Outlook full scan, please wait...</value>
+  </data>
+  <data name="TXT_78166B20" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="TXT_785DBE81" xml:space="preserve">
+    <value>Open Log Folder</value>
+  </data>
+  <data name="TXT_78614298" xml:space="preserve">
+    <value>M365 Apps</value>
+  </data>
+  <data name="TXT_79058DA6" xml:space="preserve">
+    <value>Reset and Clear Cache</value>
+  </data>
+  <data name="TXT_79DB7A01" xml:space="preserve">
+    <value>N/A</value>
+  </data>
+  <data name="TXT_7A3588BB" xml:space="preserve">
+    <value>Confirm Repair Outlook Meeting Add-in</value>
+  </data>
+  <data name="TXT_7BAFDF3F" xml:space="preserve">
+    <value>Open Cache</value>
+  </data>
+  <data name="TXT_7E6E9C27" xml:space="preserve">
+    <value>Match system language</value>
+  </data>
+  <data name="TXT_7FA11407" xml:space="preserve">
+    <value>Repair action executed. Please review details.</value>
+  </data>
+  <data name="TXT_7FA7C752" xml:space="preserve">
+    <value>This runs official Microsoft Get Help scenario to scan Outlook calendar issues via CalCheck.
+
+Continue?</value>
+  </data>
+  <data name="TXT_802B283F" xml:space="preserve">
+    <value>Update Channel</value>
+  </data>
+  <data name="TXT_80F11CB0" xml:space="preserve">
+    <value> (System default)</value>
+  </data>
+  <data name="TXT_82D75311" xml:space="preserve">
+    <value>Channel Settings</value>
+  </data>
+  <data name="TXT_83E71839" xml:space="preserve">
+    <value>Uninstall</value>
+  </data>
+  <data name="TXT_84107F4C" xml:space="preserve">
+    <value>Disable automatic updates after switching</value>
+  </data>
+  <data name="TXT_86F6F601" xml:space="preserve">
+    <value>All Office Versions</value>
+  </data>
+  <data name="TXT_87D8B663" xml:space="preserve">
+    <value>Verification Required</value>
+  </data>
+  <data name="TXT_8DD31791" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="TXT_8E7FB028" xml:space="preserve">
+    <value>Cleanup completed.</value>
+  </data>
+  <data name="TXT_8EF39016" xml:space="preserve">
+    <value>Run activation cleanup and network/activation environment repair for common Microsoft 365 activation issues.</value>
+  </data>
+  <data name="TXT_8F99732C" xml:space="preserve">
+    <value>Confirm Teams Processing</value>
+  </data>
+  <data name="TXT_8FE1E625" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="TXT_91804C0A" xml:space="preserve">
+    <value>Items requiring attention were found</value>
+  </data>
+  <data name="TXT_94967E29" xml:space="preserve">
+    <value>Install task started successfully</value>
+  </data>
+  <data name="TXT_95BAC39A" xml:space="preserve">
+    <value>Cleanup  Repair</value>
+  </data>
+  <data name="TXT_9A73DB9B" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="TXT_9A7E63A2" xml:space="preserve">
+    <value>Configure language and 21V portal verification status.</value>
+  </data>
+  <data name="TXT_9C42C288" xml:space="preserve">
+    <value>Next step suggestion:</value>
+  </data>
+  <data name="TXT_9CF82695" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="TXT_9D3789E2" xml:space="preserve">
+    <value>Outlook Teams meeting add-in repair completed. Restart Outlook to verify.</value>
+  </data>
+  <data name="TXT_9FDDA1FF" xml:space="preserve">
+    <value>Outlook Tools</value>
+  </data>
+  <data name="TXT_9FF6FB65" xml:space="preserve">
+    <value>Detected Office</value>
+  </data>
+  <data name="TXT_A01CBA93" xml:space="preserve">
+    <value>Status: 21V portal verification not completed.</value>
+  </data>
+  <data name="TXT_A02CECEB" xml:space="preserve">
+    <value>Are you sure to repair network/activation environment? This modifies proxy and Internet Settings.</value>
+  </data>
+  <data name="TXT_A1407514" xml:space="preserve">
+    <value>Confirm Outlook Offline Scan</value>
+  </data>
+  <data name="TXT_A183C9EF" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="TXT_A2277157" xml:space="preserve">
+    <value>Processing Teams, please wait...</value>
+  </data>
+  <data name="TXT_A34CDA62" xml:space="preserve">
+    <value>Semi-Annual Channel</value>
+  </data>
+  <data name="TXT_A6C0AB34" xml:space="preserve">
+    <value>View Teams results, closed processes, processed folders and next-step suggestions here.</value>
+  </data>
+  <data name="TXT_A7A6B81C" xml:space="preserve">
+    <value>Repair IE/WinHTTP settings and proxy to restore network prerequisites for Office activation.</value>
+  </data>
+  <data name="TXT_B11CBAB7" xml:space="preserve">
+    <value>Please complete 21V portal verification before using other pages.</value>
+  </data>
+  <data name="TXT_B390E397" xml:space="preserve">
+    <value>Checking system environment...</value>
+  </data>
+  <data name="TXT_B3B6B7DE" xml:space="preserve">
+    <value>Latest Version</value>
+  </data>
+  <data name="TXT_B55BDB5E" xml:space="preserve">
+    <value>Clean Activation Info</value>
+  </data>
+  <data name="TXT_B5781C83" xml:space="preserve">
+    <value>Unnamed language</value>
+  </data>
+  <data name="TXT_B677DDFA" xml:space="preserve">
+    <value>Run Outlook scans and generate diagnostics reports</value>
+  </data>
+  <data name="TXT_B6EBFAF2" xml:space="preserve">
+    <value>Unknown time</value>
+  </data>
+  <data name="TXT_B82858D4" xml:space="preserve">
+    <value>No Outlook diagnostics log folder is available yet.</value>
+  </data>
+  <data name="TXT_BBB713D9" xml:space="preserve">
+    <value>Start Switch</value>
+  </data>
+  <data name="TXT_BD38521C" xml:space="preserve">
+    <value>Uninstall subscription Office, such as Microsoft 365 Apps for enterprise / business.</value>
+  </data>
+  <data name="TXT_BD87AFCC" xml:space="preserve">
+    <value>Meeting Add-in Repair</value>
+  </data>
+  <data name="TXT_BECC0E51" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="TXT_C0742761" xml:space="preserve">
+    <value>Start Uninstall</value>
+  </data>
+  <data name="TXT_C28C66D0" xml:space="preserve">
+    <value>Office uninstall completed. You can open the log folder.</value>
+  </data>
+  <data name="TXT_C30F6435" xml:space="preserve">
+    <value>Confirm installation</value>
+  </data>
+  <data name="TXT_C45B97B5" xml:space="preserve">
+    <value>Install failed</value>
+  </data>
+  <data name="TXT_C6847124" xml:space="preserve">
+    <value>Recent Report Folder</value>
+  </data>
+  <data name="TXT_C8150551" xml:space="preserve">
+    <value>View channel switch status, target version, and execution results here.</value>
+  </data>
+  <data name="TXT_C91FA2DE" xml:space="preserve">
+    <value>Microsoft 365 Operations Console</value>
+  </data>
+  <data name="TXT_CD6458DE" xml:space="preserve">
+    <value>Uninstall Target</value>
+  </data>
+  <data name="TXT_CD667AD6" xml:space="preserve">
+    <value>Loading official Microsoft version list...</value>
+  </data>
+  <data name="TXT_CD9A49F4" xml:space="preserve">
+    <value>Open new Teams cache folder for manual inspection.</value>
+  </data>
+  <data name="TXT_D2B4DFD2" xml:space="preserve">
+    <value>Clean activation remnants and account traces</value>
+  </data>
+  <data name="TXT_D475DC02" xml:space="preserve">
+    <value>View uninstall results, return code, process summary and next-step suggestions here.</value>
+  </data>
+  <data name="TXT_DA298567" xml:space="preserve">
+    <value>Delete Sign-in Records</value>
+  </data>
+  <data name="TXT_DAD1AFFF" xml:space="preserve">
+    <value>Welcome to 21V M365 Assistant.</value>
+  </data>
+  <data name="TXT_DC839411" xml:space="preserve">
+    <value>Edition</value>
+  </data>
+  <data name="TXT_DE903B3C" xml:space="preserve">
+    <value>21V portal verification is required to use this tool.</value>
+  </data>
+  <data name="TXT_DF1456D1" xml:space="preserve">
+    <value>No signed-in user detected</value>
+  </data>
+  <data name="TXT_DF537AB2" xml:space="preserve">
+    <value>Repair Network  Activation</value>
+  </data>
+  <data name="TXT_E02379A1" xml:space="preserve">
+    <value>Outlook diagnostics completed. You can open the report folder.</value>
+  </data>
+  <data name="TXT_E1CD8F04" xml:space="preserve">
+    <value>No installed Office detected.</value>
+  </data>
+  <data name="TXT_E32A6113" xml:space="preserve">
+    <value>Target Channel</value>
+  </data>
+  <data name="TXT_E447C4E0" xml:space="preserve">
+    <value>Access Restricted</value>
+  </data>
+  <data name="TXT_E4A9DBBE" xml:space="preserve">
+    <value>This runs official Microsoft Get Help scenario for full Outlook scan and diagnostics report.
+
+Continue?</value>
+  </data>
+  <data name="TXT_E83ACCAD" xml:space="preserve">
+    <value>Switch Office update channel, and choose latest or fixed version to trigger update.</value>
+  </data>
+  <data name="TXT_EB22D76F" xml:space="preserve">
+    <value>This runs official Microsoft Get Help scenario to repair Teams Meeting Add-in in Outlook.
+Outlook may be closed during execution.
+
+Continue?</value>
+  </data>
+  <data name="TXT_EE71B7A6" xml:space="preserve">
+    <value>Open Failed</value>
+  </data>
+  <data name="TXT_EF36D901" xml:space="preserve">
+    <value>Switch Update Channel</value>
+  </data>
+  <data name="TXT_EF66A976" xml:space="preserve">
+    <value>Confirm Clean Activation Info</value>
+  </data>
+  <data name="TXT_EFA2E7BB" xml:space="preserve">
+    <value>Use official Microsoft SaRA Office Uninstall scenario to uninstall target version and keep logs.</value>
+  </data>
+  <data name="TXT_F010A345" xml:space="preserve">
+    <value>Full Scan</value>
+  </data>
+  <data name="TXT_F2F1E5EB" xml:space="preserve">
+    <value>Confirm Outlook Calendar Scan</value>
+  </data>
+  <data name="TXT_F36FC0DC" xml:space="preserve">
+    <value>Installation result and logs will be shown here</value>
+  </data>
+  <data name="TXT_F38D9CF1" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="TXT_F3E79A26" xml:space="preserve">
+    <value>New Outlook</value>
+  </data>
+  <data name="TXT_F690C889" xml:space="preserve">
+    <value>Use CalCheck to scan known issues in Outlook calendar and generate results.</value>
+  </data>
+  <data name="TXT_F7567DDA" xml:space="preserve">
+    <value>Choose product, architecture and channel, then run online installation and environment checks</value>
+  </data>
+  <data name="TXT_F79F4B3F" xml:space="preserve">
+    <value>This runs official Microsoft Get Help scenario in compatibility mode.
+
+Continue?</value>
+  </data>
+  <data name="TXT_F7EF9B3E" xml:space="preserve">
+    <value>Install M365 Apps, Project, or Visio online</value>
+  </data>
+  <data name="TXT_FBF2EF54" xml:space="preserve">
+    <value>Checks done</value>
+  </data>
+  <data name="TXT_FD435876" xml:space="preserve">
+    <value>Teams Tools</value>
+  </data>
+  <data name="TXT_FE6125A8" xml:space="preserve">
+    <value>Run Microsoft Get Help scenarios for Outlook full scan, offline scan and calendar scan.</value>
+  </data>
+  <data name="TXT_FE99539E" xml:space="preserve">
+    <value>Repairing network and activation environment...</value>
+  </data>
+  <data name="TXT_FF116838" xml:space="preserve">
+    <value>Preparing latest Office uninstall engine...</value>
+  </data>
+</root>
