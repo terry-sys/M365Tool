@@ -1,41 +1,66 @@
-# 21V M365 Assistant
+# 21V M365 助手
 
-21V M365 Assistant is a Windows desktop utility for Microsoft 365 operations in 21V environments. It provides a guided workbench for installing Microsoft 365 Apps, uninstalling Office, switching update channels, cleaning activation traces, repairing common Teams issues, and running Outlook diagnostics.
+21V M365 助手是一款面向 21V Microsoft 365 运维场景的 Windows 桌面工具，用于辅助完成 Microsoft 365 Apps 安装、Office 卸载、更新频道切换、激活痕迹清理、Teams 常见问题处理和 Outlook 诊断等操作。
 
-> This tool performs administrative Microsoft 365 maintenance tasks. Test in a controlled environment before using it on production devices.
+> 重要说明：本项目仅适用于 21V 用户和 21V 相关 Microsoft 365 环境。工具内置了 21V 账户认证能力，并不适合作为全部 Microsoft 365 租户或环境的通用工具。
 >
-> This project is intended for 21V users only. It includes 21V account verification and is not designed as a general-purpose tool for all Microsoft 365 tenants or environments.
+> 该工具会执行 Microsoft 365 管理和维护相关操作，请先在可控测试环境中验证，再用于生产设备。
 
-## Features
+## English Summary
 
-- **Install**: configure Microsoft 365 Apps, Project, or Visio installation options, including edition, architecture, channel, languages, and excluded apps.
-- **Uninstall**: detect installed Office products and run Microsoft-supported uninstall workflows.
-- **Update Channel**: switch Office update channels and optionally pin to a target build.
-- **Cleanup & Repair**: clean activation remnants, account traces, proxy settings, and network dependencies.
-- **Teams Tools**: reset New Teams, clear cache, delete sign-in records, and repair the Teams Meeting Add-in.
-- **Outlook Tools**: run Outlook diagnostics, offline scans, calendar checks, and export logs.
-- **Bilingual UI**: supports Simplified Chinese and English.
-- **Access Gate**: restricted modules require 21V portal verification before use.
+21V M365 Assistant is a Windows desktop utility for Microsoft 365 operations in 21V environments. It includes 21V account verification and is not intended to be a general-purpose tool for all Microsoft 365 tenants.
 
-## Requirements
+## 功能模块
 
-- Windows 10/11, x64 recommended
-- .NET 8 Windows Desktop Runtime when using framework-dependent builds
-- Administrator privileges for install, uninstall, cleanup, and repair operations
-- Network access to Microsoft endpoints for validation, installation, and diagnostics
-- Microsoft Edge WebView2 Runtime for the portal verification window
+- **安装**：配置并安装 Microsoft 365 Apps、Project、Visio，支持版本、位数、频道、语言和排除应用选择。
+- **卸载**：检测已安装的 Office 产品，并调用微软官方能力执行卸载处理。
+- **更新频道**：切换 Office 更新频道，支持按需切换到目标版本或执行版本回退。
+- **清理与修复**：清理激活残留、账户痕迹，并修复代理与网络依赖问题。
+- **Teams 工具**：处理 Teams 缓存、登录记录和常见客户端配置异常。
+- **Outlook 工具**：执行 Outlook 扫描、诊断、日历检查和日志导出。
+- **双语界面**：支持简体中文和英文界面。
+- **访问控制**：除首页外的受限功能需要通过 21V 账户验证后使用。
 
-Self-contained test builds include the .NET runtime, but WebView2 may still be required by Windows if it is not already installed.
+## 运行要求
 
-## Download And Test
+- Windows 10/11，建议 x64 系统
+- 使用框架依赖版本时需要 .NET 8 Windows Desktop Runtime
+- 执行安装、卸载、清理和修复操作时通常需要管理员权限
+- 需要访问 Microsoft 相关网络端点，用于验证、安装和诊断
+- 21V 账户验证窗口需要 Microsoft Edge WebView2 Runtime
 
-For local testing, use the generated package under `releases/` if present:
+单文件自包含测试版已包含 .NET 运行时；如果系统未安装 WebView2，仍可能需要额外安装 WebView2 Runtime。
+
+## 下载与测试
+
+可以在 GitHub Release 页面下载单文件版：
+
+[下载 M365Tool v0.1.0](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.0)
+
+下载 `M365Tool-win-x64-single-*.exe` 后直接运行即可。
+
+如果你在本地已经生成了测试包，也可以运行：
 
 ```powershell
 .\releases\M365Tool-win-x64-single-*.exe
 ```
 
-If no release package exists, build one:
+## 从源码构建
+
+```powershell
+git clone https://github.com/terry-sys/M365Tool.git
+cd M365Tool
+dotnet restore .\M365Tool.sln
+dotnet build .\M365Tool.sln
+```
+
+也可以使用 Visual Studio 打开 `M365Tool.sln` 运行，或直接通过命令行启动项目：
+
+```powershell
+dotnet run --project .\src\M365Tool.UI\M365Tool.csproj
+```
+
+## 打包单文件版本
 
 ```powershell
 dotnet publish .\src\M365Tool.UI\M365Tool.csproj `
@@ -47,52 +72,37 @@ dotnet publish .\src\M365Tool.UI\M365Tool.csproj `
   /p:EnableCompressionInSingleFile=true
 ```
 
-The published executable will be created under:
+发布后的可执行文件位于：
 
 ```text
 src/M365Tool.UI/bin/Release/net8.0-windows7.0/win-x64/publish/
 ```
 
-## Build From Source
-
-```powershell
-git clone https://github.com/terry-sys/M365Tool.git
-cd M365Tool
-dotnet restore .\M365Tool.sln
-dotnet build .\M365Tool.sln
-```
-
-Run from Visual Studio by opening `M365Tool.sln`, or run the project directly:
-
-```powershell
-dotnet run --project .\src\M365Tool.UI\M365Tool.csproj
-```
-
-## Repository Layout
+## 项目结构
 
 ```text
-src/M365Tool.UI/          Windows Forms application
-src/M365Tool.UI/Services/ Microsoft 365 operation services
-src/M365Tool.UI/Models/   Configuration and result models
+src/M365Tool.UI/          Windows Forms 桌面应用
+src/M365Tool.UI/Services/ Microsoft 365 运维操作服务
+src/M365Tool.UI/Models/   配置、模板和结果模型
 ```
 
-## Localization
+## 本地化
 
-UI text is maintained through `T("中文", "English")` pairs and resource files:
+界面文本通过 `T("中文", "English")` 形式维护，并配合以下资源文件：
 
 - `src/M365Tool.UI/Resources/UiStrings.resx`
 - `src/M365Tool.UI/Resources/UiStrings.zh-CN.resx`
 
-## Safety Notes
+## 使用注意事项
 
-- This application is built for 21V scenarios and requires 21V account verification for restricted functions.
-- It is not intended for general Microsoft 365 environments outside 21V.
-- Run as administrator when performing installation, uninstall, cleanup, or repair actions.
-- Close Office, Teams, and Outlook before running operations that modify their local state.
-- Review pre-check output before installing Microsoft 365 Apps.
-- Keep exported logs when testing failures; they are useful for diagnosis.
-- Do not commit local build outputs from `bin/`, `obj/`, `artifacts/`, or `releases/`.
+- 本工具面向 21V 场景，受限功能需要完成 21V 账户验证。
+- 本工具不适用于 21V 以外的通用 Microsoft 365 环境。
+- 执行安装、卸载、清理或修复前，建议以管理员身份运行。
+- 执行会修改本地状态的操作前，建议先关闭 Office、Teams 和 Outlook。
+- 安装前请先查看预检查结果。
+- 测试失败时请保留导出的日志，便于后续排查。
+- 不要提交 `bin/`、`obj/`、`artifacts/`、`releases/` 等本地构建产物。
 
-## Status
+## 当前状态
 
-This repository is actively being refined. Current work focuses on UI consistency, test packaging, and separating operation logic from the WinForms layer.
+项目仍在持续优化中，当前重点是完善 UI 一致性、功能测试体验和 WinForms 层与运维逻辑的边界。
