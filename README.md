@@ -39,69 +39,13 @@
 
 下载 `M365Tool-win-x64-single-*.exe` 后直接运行即可。
 
-如果你在本地已经生成了测试包，也可以运行：
-
-```powershell
-.\releases\M365Tool-win-x64-single-*.exe
-```
-
-## 从源码构建
-
-```powershell
-git clone https://github.com/terry-sys/M365Tool.git
-cd M365Tool
-dotnet restore .\M365Tool.sln
-dotnet build .\M365Tool.sln
-```
-
-也可以使用 Visual Studio 打开 `M365Tool.sln` 运行，或直接通过命令行启动项目：
-
-```powershell
-dotnet run --project .\src\M365Tool.UI\M365Tool.csproj
-```
-
-## 打包单文件版本
-
-```powershell
-dotnet publish .\src\M365Tool.UI\M365Tool.csproj `
-  -c Release `
-  -r win-x64 `
-  --self-contained true `
-  /p:PublishSingleFile=true `
-  /p:IncludeNativeLibrariesForSelfExtract=true `
-  /p:EnableCompressionInSingleFile=true
-```
-
-发布后的可执行文件位于：
-
-```text
-src/M365Tool.UI/bin/Release/net8.0-windows7.0/win-x64/publish/
-```
-
-## 项目结构
-
-```text
-src/M365Tool.UI/          Windows Forms 桌面应用
-src/M365Tool.UI/Services/ Microsoft 365 运维操作服务
-src/M365Tool.UI/Models/   配置、模板和结果模型
-```
-
-## 本地化
-
-界面文本通过 `T("中文", "English")` 形式维护，并配合以下资源文件：
-
-- `src/M365Tool.UI/Resources/UiStrings.resx`
-- `src/M365Tool.UI/Resources/UiStrings.zh-CN.resx`
-
 ## 使用注意事项
 
 - 本工具面向 21V 场景，受限功能需要完成 21V 账户验证。
 - 本工具不适用于 21V 以外的通用 Microsoft 365 环境。
-- 执行安装、卸载、清理或修复前，建议以管理员身份运行。
 - 执行会修改本地状态的操作前，建议先关闭 Office、Teams 和 Outlook。
 - 安装前请先查看预检查结果。
 - 测试失败时请保留导出的日志，便于后续排查。
-- 不要提交 `bin/`、`obj/`、`artifacts/`、`releases/` 等本地构建产物。
 
 ## 当前状态
 
