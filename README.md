@@ -1,8 +1,10 @@
 # 21V M365 Assistant
 
-21V M365 Assistant is a Windows desktop utility for Microsoft 365 operations. It provides a guided workbench for installing Microsoft 365 Apps, uninstalling Office, switching update channels, cleaning activation traces, repairing common Teams issues, and running Outlook diagnostics.
+21V M365 Assistant is a Windows desktop utility for Microsoft 365 operations in 21V environments. It provides a guided workbench for installing Microsoft 365 Apps, uninstalling Office, switching update channels, cleaning activation traces, repairing common Teams issues, and running Outlook diagnostics.
 
 > This tool performs administrative Microsoft 365 maintenance tasks. Test in a controlled environment before using it on production devices.
+>
+> This project is intended for 21V users only. It includes 21V account verification and is not designed as a general-purpose tool for all Microsoft 365 tenants or environments.
 
 ## Features
 
@@ -83,6 +85,8 @@ UI text is maintained through `T("中文", "English")` pairs and resource files:
 
 ## Safety Notes
 
+- This application is built for 21V scenarios and requires 21V account verification for restricted functions.
+- It is not intended for general Microsoft 365 environments outside 21V.
 - Run as administrator when performing installation, uninstall, cleanup, or repair actions.
 - Close Office, Teams, and Outlook before running operations that modify their local state.
 - Review pre-check output before installing Microsoft 365 Apps.
