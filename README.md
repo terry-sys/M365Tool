@@ -34,7 +34,7 @@
 
 可以在 GitHub Release 页面下载单文件版：
 
-[下载 M365Tool v0.1.0](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.0)
+[下载 M365Tool v0.1.1](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.1)
 
 下载 `M365Tool-win-x64-single-*.exe` 后直接运行即可。
 
