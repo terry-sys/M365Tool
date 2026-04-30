@@ -38,6 +38,12 @@ namespace Office365CleanupTool.Models
 
         public string ProcessCleanupSummary { get; set; } = string.Empty;
 
-        public bool IsSuccess => ExitCode == 0;
+        public string PostCheckOfficeSummary { get; set; } = string.Empty;
+
+        public bool BackgroundUninstallReported { get; set; }
+
+        public bool RequiresAttention { get; set; }
+
+        public bool IsSuccess => ExitCode == 0 && !RequiresAttention;
     }
 }

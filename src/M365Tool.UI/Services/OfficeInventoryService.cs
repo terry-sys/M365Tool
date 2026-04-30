@@ -49,7 +49,7 @@ namespace Office365CleanupTool.Services
             {
                 using var subKey = uninstallKey.OpenSubKey(subKeyName);
                 string? displayName = subKey?.GetValue("DisplayName") as string;
-                if (!LooksLikeOfficeProduct(displayName))
+                if (!LooksLikeOfficeProduct(displayName) || IsOfficeRelatedAddIn(displayName))
                 {
                     continue;
                 }
@@ -109,6 +109,16 @@ namespace Office365CleanupTool.Services
                 || displayName.Contains("Microsoft 365", StringComparison.OrdinalIgnoreCase)
                 || displayName.Contains("Visio", StringComparison.OrdinalIgnoreCase)
                 || displayName.Contains("Project", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsOfficeRelatedAddIn(string? displayName)
+        {
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                return false;
+            }
+
+            return displayName.Contains("Teams Meeting Add-in", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string ResolveProductFamily(string? text)

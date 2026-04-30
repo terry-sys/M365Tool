@@ -58,6 +58,8 @@ namespace Office365CleanupTool.Services
         };
 
         private const string SaraDownloadUrl = "https://aka.ms/SaRA_EnterpriseVersionFiles";
+        private static readonly TimeSpan BackgroundUninstallTimeout = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan BackgroundUninstallPollInterval = TimeSpan.FromSeconds(15);
         private readonly IScriptRunner _scriptRunner;
         private readonly OfficeInventoryService _officeInventoryService;
 
@@ -182,19 +184,49 @@ namespace Office365CleanupTool.Services
                 OnErrorDataReceived = data => OnProgressChanged($"{T(language, "SaRA 错误", "SaRA Error")}: {data}", OfficeUninstallStatus.Processing)
             });
 
+            bool backgroundUninstallReported = IndicatesBackgroundUninstall(executionResult);
+            IReadOnlyList<InstalledOfficeInfo> postCheckOffice = backgroundUninstallReported
+                ? await WaitForBackgroundUninstallAsync(language)
+                : DetectInstalledOffice();
+            string postCheckOfficeSummary = postCheckOffice.Count == 0
+                ? T(language, "未检测到已安装的 Office。", "No installed Office detected.")
+                : string.Join(language == UiLanguage.Chinese ? "；" : "; ", postCheckOffice.Select(item => item.ToString()));
+            bool stillHasOfficeAfterUninstall = postCheckOffice.Count > 0;
+            bool requiresAttention = executionResult.ExitCode != 0 || (backgroundUninstallReported && stillHasOfficeAfterUninstall);
+            string summary = BuildSummary(executionResult.ExitCode, backgroundUninstallReported, stillHasOfficeAfterUninstall, language);
+            string nextStepAdvice = BuildNextStepAdvice(
+                executionResult.ExitCode,
+                request.Target,
+                detectedOfficeSummary,
+                postCheckOfficeSummary,
+                backgroundUninstallReported,
+                stillHasOfficeAfterUninstall,
+                language);
             string saraArchivePath = ArchiveSaraLogs(extractRoot, logRoot);
 
             var result = new OfficeUninstallResult
             {
                 ExitCode = executionResult.ExitCode,
-                Summary = SaraResultInterpreter.GetSummary(executionResult.ExitCode, language),
-                Details = BuildDetails(request.Target, executionResult.ExitCode, saraArchivePath, processCleanupSummary, detectedOfficeSummary, language),
-                NextStepAdvice = SaraResultInterpreter.GetNextStepAdvice(executionResult.ExitCode, request.Target, detectedOfficeSummary, language),
+                Summary = summary,
+                Details = BuildDetails(
+                    request.Target,
+                    executionResult.ExitCode,
+                    saraArchivePath,
+                    processCleanupSummary,
+                    detectedOfficeSummary,
+                    postCheckOfficeSummary,
+                    backgroundUninstallReported,
+                    stillHasOfficeAfterUninstall,
+                    language),
+                NextStepAdvice = nextStepAdvice,
                 DetectedOfficeSummary = detectedOfficeSummary,
+                PostCheckOfficeSummary = postCheckOfficeSummary,
                 LogDirectory = logRoot,
                 StandardOutput = executionResult.StandardOutput,
                 StandardError = executionResult.StandardError,
-                ProcessCleanupSummary = processCleanupSummary
+                ProcessCleanupSummary = processCleanupSummary,
+                BackgroundUninstallReported = backgroundUninstallReported,
+                RequiresAttention = requiresAttention
             };
 
             File.WriteAllText(
@@ -342,6 +374,9 @@ namespace Office365CleanupTool.Services
             string saraArchivePath,
             string processCleanupSummary,
             string detectedOfficeSummary,
+            string postCheckOfficeSummary,
+            bool backgroundUninstallReported,
+            bool stillHasOfficeAfterUninstall,
             UiLanguage language)
         {
             string targetText = target.UsesDetectedInstalledVersion
@@ -350,8 +385,9 @@ namespace Office365CleanupTool.Services
             return
                 $"{T(language, "卸载目标", "Uninstall target")}: {targetText}\r\n" +
                 $"{T(language, "结果码", "Exit code")}: {exitCode}\r\n" +
-                $"{T(language, "说明", "Summary")}: {SaraResultInterpreter.GetSummary(exitCode, language)}\r\n" +
-                $"{T(language, "当前检测", "Detected")}: {detectedOfficeSummary}\r\n" +
+                $"{T(language, "说明", "Summary")}: {BuildSummary(exitCode, backgroundUninstallReported, stillHasOfficeAfterUninstall, language)}\r\n" +
+                $"{T(language, "卸载前检测", "Before uninstall")}: {detectedOfficeSummary}\r\n" +
+                $"{T(language, "卸载后复查", "Post-check")}: {postCheckOfficeSummary}\r\n" +
                 $"{T(language, "进程处理", "Process cleanup")}: {processCleanupSummary}\r\n" +
                 $"{T(language, "日志压缩包", "Log archive")}: {saraArchivePath}";
         }
@@ -369,6 +405,9 @@ namespace Office365CleanupTool.Services
             builder.AppendLine($"ExitCode: {result.ExitCode}");
             builder.AppendLine($"Summary: {result.Summary}");
             builder.AppendLine($"DetectedOffice: {result.DetectedOfficeSummary}");
+            builder.AppendLine($"PostCheckOffice: {result.PostCheckOfficeSummary}");
+            builder.AppendLine($"BackgroundUninstallReported: {result.BackgroundUninstallReported}");
+            builder.AppendLine($"RequiresAttention: {result.RequiresAttention}");
             builder.AppendLine($"NextStepAdvice: {result.NextStepAdvice}");
             builder.AppendLine($"ProcessCleanup: {result.ProcessCleanupSummary}");
             builder.AppendLine($"SaraArchive: {saraArchivePath}");
@@ -384,6 +423,87 @@ namespace Office365CleanupTool.Services
         private void OnProgressChanged(string message, OfficeUninstallStatus status)
         {
             ProgressChanged?.Invoke(this, new OfficeUninstallProgressEventArgs(message, status));
+        }
+
+        private async Task<IReadOnlyList<InstalledOfficeInfo>> WaitForBackgroundUninstallAsync(UiLanguage language)
+        {
+            OnProgressChanged(
+                T(
+                    language,
+                    "GetHelp 已将 Office 卸载转入后台执行，正在等待卸载完成并复查控制面板残留项...",
+                    "GetHelp started Office uninstall in the background. Waiting for completion and checking remaining entries..."),
+                OfficeUninstallStatus.Processing);
+
+            DateTime deadline = DateTime.Now.Add(BackgroundUninstallTimeout);
+            IReadOnlyList<InstalledOfficeInfo> current = DetectInstalledOffice();
+
+            while (current.Count > 0 && DateTime.Now < deadline)
+            {
+                OnProgressChanged(
+                    T(
+                        language,
+                        $"后台卸载仍在进行或等待系统刷新，当前仍检测到 {current.Count} 项 Office 组件。请不要关闭可能出现的卸载窗口。",
+                        $"Background uninstall is still running or waiting for system refresh. {current.Count} Office entries are still detected. Do not close any uninstall window that appears."),
+                    OfficeUninstallStatus.Processing);
+
+                await Task.Delay(BackgroundUninstallPollInterval);
+                current = DetectInstalledOffice();
+            }
+
+            return current;
+        }
+
+        private static bool IndicatesBackgroundUninstall(ScriptExecutionResult result)
+        {
+            string combinedOutput = $"{result.StandardOutput}\n{result.StandardError}";
+            return combinedOutput.Contains("Uninstall office is running in the background", StringComparison.OrdinalIgnoreCase)
+                || combinedOutput.Contains("Office uninstall is running in the background", StringComparison.OrdinalIgnoreCase)
+                || combinedOutput.Contains("running in the background", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildSummary(
+            int exitCode,
+            bool backgroundUninstallReported,
+            bool stillHasOfficeAfterUninstall,
+            UiLanguage language)
+        {
+            if (exitCode == 0 && backgroundUninstallReported && stillHasOfficeAfterUninstall)
+            {
+                return T(
+                    language,
+                    "卸载已由 GetHelp 转入后台执行，但复查时仍检测到 Office 组件，不能判定为已完成。",
+                    "GetHelp started uninstall in the background, but Office entries are still detected during post-check. Completion cannot be confirmed.");
+            }
+
+            if (exitCode == 0 && backgroundUninstallReported)
+            {
+                return T(
+                    language,
+                    "后台卸载已完成，复查未检测到 Office 组件，建议重启计算机完成剩余清理。",
+                    "Background uninstall completed. No Office entries were detected during post-check. Restart is recommended.");
+            }
+
+            return SaraResultInterpreter.GetSummary(exitCode, language);
+        }
+
+        private static string BuildNextStepAdvice(
+            int exitCode,
+            OfficeUninstallTargetOption target,
+            string detectedOfficeSummary,
+            string postCheckOfficeSummary,
+            bool backgroundUninstallReported,
+            bool stillHasOfficeAfterUninstall,
+            UiLanguage language)
+        {
+            if (exitCode == 0 && backgroundUninstallReported && stillHasOfficeAfterUninstall)
+            {
+                return T(
+                    language,
+                    $"请先等待后台卸载窗口结束或重启计算机，然后重新打开控制面板检查残留项。当前复查仍检测到：{postCheckOfficeSummary}",
+                    $"Wait for the background uninstall window to finish or restart the computer, then check Control Panel again. Still detected: {postCheckOfficeSummary}");
+            }
+
+            return SaraResultInterpreter.GetNextStepAdvice(exitCode, target, detectedOfficeSummary, language);
         }
 
         private static string T(UiLanguage language, string zh, string en)
