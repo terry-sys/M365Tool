@@ -34,9 +34,9 @@
 
 可以在 GitHub Release 页面下载单文件版：
 
-[下载 M365Tool v0.1.1](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.1)
+[下载 21Vianet Office工具箱 v0.1.2](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.2)
 
-下载 `M365Tool-win-x64-single-*.exe` 后直接运行即可。
+下载 `21VianetOfficeToolbox-portable-win-x64-v0.1.2.exe` 后直接运行即可；也可以下载同名 `.zip` 压缩包。
 
 ## 使用注意事项
 
