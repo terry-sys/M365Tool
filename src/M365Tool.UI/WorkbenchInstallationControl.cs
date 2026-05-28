@@ -139,7 +139,7 @@ namespace Office365CleanupTool
 
         public WorkbenchInstallationControl(UiLanguage initialLanguage)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             Dock = DockStyle.Fill;
             BackColor = WorkbenchUi.CanvasColor;
             AutoScroll = false;

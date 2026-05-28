@@ -42,7 +42,7 @@ namespace Office365CleanupTool
 
         public WorkbenchOutlookControl(OutlookDiagnosticsService outlookDiagnosticsService)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _outlookDiagnosticsService = outlookDiagnosticsService;
             _language = LocalizationService.ResolveLanguage("Auto");
 

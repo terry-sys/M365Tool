@@ -1,6 +1,6 @@
-# 21V M365 助手
+# 21Vianet Office工具箱
 
-21V M365 助手是一款面向 21V Microsoft 365 运维场景的 Windows 桌面工具，用于辅助完成 Microsoft 365 Apps 安装、Office 卸载、更新频道切换、激活痕迹清理、Teams 常见问题处理和 Outlook 诊断等操作。
+21Vianet Office工具箱是一款面向 21Vianet / 21V Microsoft 365 运维场景的 Windows 桌面工具，用于辅助完成 Microsoft 365 Apps 安装、Office 卸载、更新频道切换、激活痕迹清理、Teams 常见问题处理和 Outlook 诊断等操作。
 
 > 重要说明：本项目仅适用于 21V 用户和 21V 相关 Microsoft 365 环境。工具内置了 21V 账户认证能力，并不适合作为全部 Microsoft 365 租户或环境的通用工具。
 >
@@ -8,7 +8,7 @@
 
 ## English Summary
 
-21V M365 Assistant is a Windows desktop utility for Microsoft 365 operations in 21V environments. It includes 21V account verification and is not intended to be a general-purpose tool for all Microsoft 365 tenants.
+21Vianet Office Toolbox is a Windows desktop utility for Microsoft 365 operations in 21Vianet / 21V environments. It includes 21V account verification and is not intended to be a general-purpose tool for all Microsoft 365 tenants.
 
 ## 功能模块
 

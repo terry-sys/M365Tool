@@ -43,7 +43,7 @@ namespace Office365CleanupTool
 
         public WorkbenchUninstallControl(OfficeUninstallService officeUninstallService)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _officeUninstallService = officeUninstallService;
             _officeUninstallService.ProgressChanged += OnProgressChanged;
             _language = LocalizationService.ResolveLanguage("Auto");

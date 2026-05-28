@@ -40,7 +40,7 @@ namespace Office365CleanupTool
 
         public WorkbenchTeamsControl(TeamsMaintenanceService teamsMaintenanceService)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _teamsMaintenanceService = teamsMaintenanceService;
             _language = LocalizationService.ResolveLanguage("Auto");
 

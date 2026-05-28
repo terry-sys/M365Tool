@@ -13,6 +13,8 @@ namespace Office365CleanupTool
         private readonly AppSettings _settings;
         private UiLanguage _language;
 
+        private readonly Panel _scrollHost;
+        private readonly Panel _contentPanel;
         private readonly Label _lblTitle;
         private readonly Label _lblDescription;
         private readonly Panel _settingsCard;
@@ -34,6 +36,10 @@ namespace Office365CleanupTool
         private readonly Panel _qrPanel;
         private readonly PictureBox _picSupportQr;
         private readonly Button _btnOpenQr;
+        private readonly Panel _privacyCard;
+        private readonly Label _lblPrivacyTitle;
+        private readonly Label _lblPrivacySummary;
+        private readonly Label _lblPrivacyContent;
 
         public event EventHandler<string>? LanguageModeChanged;
 
@@ -48,14 +54,28 @@ namespace Office365CleanupTool
 
         public WorkbenchSettingsControl(AppSettingsService settingsService, AppSettings settings, UiLanguage language)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _settingsService = settingsService;
             _settings = settings;
             _language = language;
 
             Dock = DockStyle.Fill;
             BackColor = WorkbenchUi.CanvasColor;
-            AutoScroll = true;
+            AutoScroll = false;
+
+            _scrollHost = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = WorkbenchUi.CanvasColor,
+                AutoScroll = true
+            };
+
+            _contentPanel = new Panel
+            {
+                Location = new Point(0, 0),
+                BackColor = WorkbenchUi.CanvasColor,
+                Dock = DockStyle.Top
+            };
 
             _lblTitle = new Label
             {
@@ -163,16 +183,63 @@ namespace Office365CleanupTool
                 _qrPanel
             });
 
-            Controls.AddRange(new Control[] { _lblTitle, _lblDescription, _settingsCard, _supportCard });
+            _privacyCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
+            _lblPrivacyTitle = WorkbenchUi.CreateSectionTitle("隐私政策", new Point(20, 16), 220);
+            _lblPrivacySummary = new Label
+            {
+                Font = new Font("Microsoft YaHei UI", 10F),
+                ForeColor = WorkbenchUi.PrimaryTextColor,
+                BackColor = Color.Transparent,
+                Location = new Point(20, 48),
+                Size = new Size(840, 42)
+            };
+            _lblPrivacyContent = new Label
+            {
+                Font = new Font("Microsoft YaHei UI", 9.5F),
+                ForeColor = WorkbenchUi.SecondaryTextColor,
+                BackColor = Color.Transparent,
+                Location = new Point(20, 96),
+                Size = new Size(840, 168)
+            };
+            _privacyCard.Controls.AddRange(new Control[]
+            {
+                _lblPrivacyTitle,
+                _lblPrivacySummary,
+                _lblPrivacyContent
+            });
+
+            _contentPanel.Controls.AddRange(new Control[] { _lblTitle, _lblDescription, _settingsCard, _supportCard, _privacyCard });
+            _scrollHost.Controls.Add(_contentPanel);
+            Controls.Add(_scrollHost);
 
             Resize += (_, _) => LayoutControls();
-            Scroll += (_, _) => _cboLanguageMode.DroppedDown = false;
-            MouseWheel += (_, _) => _cboLanguageMode.DroppedDown = false;
+            _scrollHost.Resize += (_, _) => LayoutControls();
+            _scrollHost.Scroll += (_, _) => _cboLanguageMode.DroppedDown = false;
+            _scrollHost.MouseWheel += (_, _) => _cboLanguageMode.DroppedDown = false;
+            ParentChanged += (_, _) => this.BeginInvokeWhenReady(PrepareForDisplay);
+            VisibleChanged += (_, _) =>
+            {
+                if (Visible)
+                {
+                    this.BeginInvokeWhenReady(PrepareForDisplay);
+                }
+            };
 
             LoadSupportQrImage();
             BindLanguageModeOptions();
             ApplyLanguage(language);
             LayoutControls();
+        }
+
+        public void PrepareForDisplay()
+        {
+            if (_scrollHost.IsHandleCreated)
+            {
+                _scrollHost.AutoScrollPosition = new Point(0, 0);
+            }
+
+            LayoutControls();
+            this.BeginInvokeWhenReady(LayoutControls);
         }
 
         public void ApplyLanguage(UiLanguage language)
@@ -208,13 +275,25 @@ namespace Office365CleanupTool
                 ? T("建议使用微信扫码；如需放大查看，可点击右下角按钮打开二维码图片。", "We recommend scanning with WeChat. Click the button below to open the QR image in full size.")
                 : T("当前未找到二维码图片文件，请联系管理员补充公众号二维码资源。", "QR code image file was not found. Please contact the administrator to add the support QR asset.");
             _btnOpenQr.Text = T("打开二维码", "Open QR");
+            _lblPrivacyTitle.Text = T("隐私政策", "Privacy Policy");
+            _lblPrivacySummary.Text = T(
+                "本工具用于 21Vianet Microsoft 365 运维场景，登录验证和本地日志仅用于提供工具功能、排障与支持。",
+                "This tool is built for 21Vianet Microsoft 365 operations. Sign-in verification and local logs are used only to provide tool features, troubleshooting, and support.");
+            _lblPrivacyContent.Text = T(
+                "我们可能处理的信息：\r\n• 21V 账户登录验证状态、显示名、账号标识和头像缓存，用于显示登录状态和限制未登录功能。\r\n• 工具配置、安装/卸载/修复/诊断执行日志和返回码，用于本机排障、结果查看和支持工单。\r\n• 二维码反馈或技术支持中由你主动提交的信息。\r\n\r\n数据使用原则：\r\n• 本工具不出售个人信息，不进行画像或自动化决策。\r\n• 头像、设置和日志优先保存在本机用户目录；除你主动提交反馈或工单外，工具不会主动上传日志内容。\r\n• 你可以通过注销、清理缓存或删除本机日志目录来移除本地保存的账号状态和执行记录。",
+                "Information this tool may process:\r\n• 21V account verification state, display name, account identifier, and avatar cache for sign-in status and feature gating.\r\n• Tool settings, install/uninstall/repair/diagnostic logs, and exit codes for local troubleshooting, result review, and support tickets.\r\n• Information you voluntarily submit through QR-code feedback or technical support.\r\n\r\nData use principles:\r\n• This tool does not sell personal information, build profiles, or make automated decisions.\r\n• Avatars, settings, and logs are stored locally in the user profile by default. The tool does not actively upload logs unless you submit feedback or a support ticket.\r\n• You can sign out, clear cache, or delete the local log folder to remove locally stored account state and execution records.");
             BindLanguageModeOptions();
         }
 
         private void LayoutControls()
         {
+            if (_scrollHost.ClientSize.Width <= 0 || _scrollHost.ClientSize.Height <= 0)
+            {
+                return;
+            }
+
             const int margin = 24;
-            int viewportWidth = ClientSize.Width;
+            int viewportWidth = _scrollHost.ClientSize.Width;
             int availableWidth = Math.Max(560, Math.Min(1160, viewportWidth - margin * 2));
             int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
 
@@ -261,7 +340,14 @@ namespace Office365CleanupTool
                 _btnOpenQr.Location = new Point((_qrPanel.Width - _btnOpenQr.Width) / 2, _picSupportQr.Bottom + 12);
             }
 
-            AutoScrollMinSize = new Size(0, _supportCard.Bottom + 24);
+            int privacyHeight = stackSupport ? 382 : 330;
+            _privacyCard.Location = new Point(contentLeft, _supportCard.Bottom + 18);
+            _privacyCard.Size = new Size(availableWidth, privacyHeight);
+            _lblPrivacySummary.Size = new Size(availableWidth - 40, 44);
+            _lblPrivacyContent.Size = new Size(availableWidth - 40, privacyHeight - 116);
+
+            _contentPanel.Width = Math.Max(10, viewportWidth - 1);
+            _contentPanel.Height = _privacyCard.Bottom + 24;
         }
 
         private void BindLanguageModeOptions()

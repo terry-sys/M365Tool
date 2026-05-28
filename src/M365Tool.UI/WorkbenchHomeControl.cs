@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Drawing.Text;
 using System.Windows.Forms;
 using Office365CleanupTool.Services;
 
@@ -27,10 +26,22 @@ namespace Office365CleanupTool
             Outlook
         }
 
+        private static readonly IReadOnlyDictionary<ModuleIconKind, string> ModuleIconResourceNames = new Dictionary<ModuleIconKind, string>
+        {
+            [ModuleIconKind.Install] = "M365Tool.Assets.Icons.Home.install_exact_preview_tile_128.png",
+            [ModuleIconKind.Uninstall] = "M365Tool.Assets.Icons.Home.uninstall_exact_preview_tile_128.png",
+            [ModuleIconKind.Channel] = "M365Tool.Assets.Icons.Home.update_channel_exact_preview_tile_128.png",
+            [ModuleIconKind.Repair] = "M365Tool.Assets.Icons.Home.cleanup_repair_exact_preview_tile_128.png",
+            [ModuleIconKind.Teams] = "M365Tool.Assets.Icons.Home.teams_tools_exact_preview_tile_128.png",
+            [ModuleIconKind.Outlook] = "M365Tool.Assets.Icons.Home.outlook_tools_exact_preview_tile_128.png"
+        };
+
+        private static readonly Lazy<IReadOnlyDictionary<ModuleIconKind, Image>> ModuleIconImages = new(LoadModuleIconImages);
+
         private sealed class ModuleDescriptionControls
         {
             public Panel Container { get; init; } = null!;
-            public Label Icon { get; init; } = null!;
+            public PictureBox Icon { get; init; } = null!;
             public Label Title { get; init; } = null!;
             public Label Summary { get; init; } = null!;
             public Label Detail { get; init; } = null!;
@@ -52,7 +63,7 @@ namespace Office365CleanupTool
             AppSettings settings,
             UiLanguage language)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _settings = settings;
             _language = language;
 
@@ -66,7 +77,7 @@ namespace Office365CleanupTool
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(244, 250, 255),
-                AutoScroll = false
+                AutoScroll = true
             };
             _scrollHost.Paint += (_, e) => PaintHomeBackground(e.Graphics, _scrollHost.ClientRectangle);
 
@@ -74,7 +85,7 @@ namespace Office365CleanupTool
             {
                 Location = new Point(0, 0),
                 BackColor = Color.Transparent,
-                Dock = DockStyle.Fill
+                Dock = DockStyle.Top
             };
 
             _workspaceCard = CreateWorkspacePanel();
@@ -161,7 +172,7 @@ namespace Office365CleanupTool
         private ModuleDescriptionControls CreateModuleDescription()
         {
             Panel panel = CreateHomeModuleCard();
-            var icon = CreateIconLabel();
+            PictureBox icon = CreateIconLabel();
             var title = CreateLabel(16.2F, FontStyle.Bold, Color.FromArgb(29, 48, 72));
             var summary = CreateLabel(12.7F, FontStyle.Regular, Color.FromArgb(91, 112, 140));
             var detail = CreateLabel(8.8F, FontStyle.Regular, Color.FromArgb(148, 162, 180));
@@ -240,20 +251,15 @@ namespace Office365CleanupTool
             return panel;
         }
 
-        private Label CreateIconLabel()
+        private static PictureBox CreateIconLabel()
         {
-            var icon = new Label
+            return new PictureBox
             {
-                AutoSize = false,
-                BackColor = Color.FromArgb(235, 245, 255),
-                ForeColor = WorkbenchUi.PrimaryColor,
-                Font = new Font("Segoe MDL2 Assets", 17F, FontStyle.Regular),
-                TextAlign = ContentAlignment.MiddleCenter,
-                UseMnemonic = false
+                BackColor = Color.Transparent,
+                Margin = Padding.Empty,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                TabStop = false
             };
-
-            ApplyRoundedRegion(icon, 18);
-            return icon;
         }
 
         private static Label CreateLabel(float size, FontStyle style, Color foreColor)
@@ -270,145 +276,28 @@ namespace Office365CleanupTool
 
         private static void ApplyModuleCopy(ModuleDescriptionControls module, ModuleIconKind icon, string title, string summary, string detail)
         {
-            Image? oldImage = module.Icon.Image;
-            module.Icon.Image = null;
-            oldImage?.Dispose();
-            module.Icon.Text = GetModuleGlyph(icon);
+            module.Icon.Image = GetModuleIcon(icon);
             module.Title.Text = title;
             module.Summary.Text = summary;
             module.Detail.Text = detail;
         }
 
-        private static string GetModuleGlyph(ModuleIconKind icon)
+        private static Image GetModuleIcon(ModuleIconKind icon) => ModuleIconImages.Value[icon];
+
+        private static IReadOnlyDictionary<ModuleIconKind, Image> LoadModuleIconImages()
         {
-            return icon switch
+            var images = new Dictionary<ModuleIconKind, Image>();
+            var assembly = typeof(WorkbenchHomeControl).Assembly;
+
+            foreach (KeyValuePair<ModuleIconKind, string> resource in ModuleIconResourceNames)
             {
-                ModuleIconKind.Install => "\uE7C3",
-                ModuleIconKind.Uninstall => "\uE74D",
-                ModuleIconKind.Channel => "\uE8D7",
-                ModuleIconKind.Repair => "\uE90F",
-                ModuleIconKind.Teams => "\uE720",
-                ModuleIconKind.Outlook => "\uE715",
-                _ => "\uE10C"
-            };
-        }
-
-        private static Bitmap CreateModuleIconBitmap(ModuleIconKind icon, Color color, Size size)
-        {
-            var bitmap = new Bitmap(size.Width, size.Height);
-            using Graphics graphics = Graphics.FromImage(bitmap);
-            graphics.Clear(Color.Transparent);
-            graphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-            using var brush = new SolidBrush(color);
-            using var lightBrush = new SolidBrush(Color.FromArgb(84, color));
-            using var pen = new Pen(color, 2.4F)
-            {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round,
-                LineJoin = LineJoin.Round
-            };
-
-            RectangleF r = new RectangleF(4, 4, size.Width - 8, size.Height - 8);
-            switch (icon)
-            {
-                case ModuleIconKind.Install:
-                    PointF[] top =
-                    {
-                        new(r.Left + r.Width * 0.50F, r.Top + r.Height * 0.06F),
-                        new(r.Left + r.Width * 0.86F, r.Top + r.Height * 0.26F),
-                        new(r.Left + r.Width * 0.50F, r.Top + r.Height * 0.46F),
-                        new(r.Left + r.Width * 0.14F, r.Top + r.Height * 0.26F)
-                    };
-                    PointF[] left =
-                    {
-                        new(r.Left + r.Width * 0.14F, r.Top + r.Height * 0.30F),
-                        new(r.Left + r.Width * 0.50F, r.Top + r.Height * 0.50F),
-                        new(r.Left + r.Width * 0.50F, r.Top + r.Height * 0.94F),
-                        new(r.Left + r.Width * 0.14F, r.Top + r.Height * 0.72F)
-                    };
-                    PointF[] right =
-                    {
-                        new(r.Left + r.Width * 0.86F, r.Top + r.Height * 0.30F),
-                        new(r.Left + r.Width * 0.50F, r.Top + r.Height * 0.50F),
-                        new(r.Left + r.Width * 0.50F, r.Top + r.Height * 0.94F),
-                        new(r.Left + r.Width * 0.86F, r.Top + r.Height * 0.72F)
-                    };
-                    graphics.FillPolygon(lightBrush, top);
-                    graphics.FillPolygon(new SolidBrush(Color.FromArgb(220, color)), left);
-                    graphics.FillPolygon(brush, right);
-                    break;
-
-                case ModuleIconKind.Uninstall:
-                    graphics.FillRectangle(brush, r.Left + r.Width * 0.30F, r.Top + r.Height * 0.28F, r.Width * 0.40F, r.Height * 0.06F);
-                    graphics.FillRectangle(brush, r.Left + r.Width * 0.42F, r.Top + r.Height * 0.14F, r.Width * 0.16F, r.Height * 0.08F);
-                    using (GraphicsPath bin = BuildRoundedPath(Rectangle.Round(new RectangleF(r.Left + r.Width * 0.27F, r.Top + r.Height * 0.38F, r.Width * 0.46F, r.Height * 0.48F)), 5))
-                    {
-                        graphics.FillPath(lightBrush, bin);
-                        graphics.DrawPath(pen, bin);
-                    }
-                    graphics.DrawLine(pen, r.Left + r.Width * 0.43F, r.Top + r.Height * 0.46F, r.Left + r.Width * 0.43F, r.Top + r.Height * 0.76F);
-                    graphics.DrawLine(pen, r.Left + r.Width * 0.57F, r.Top + r.Height * 0.46F, r.Left + r.Width * 0.57F, r.Top + r.Height * 0.76F);
-                    break;
-
-                case ModuleIconKind.Channel:
-                    graphics.DrawArc(pen, r.Left + 2, r.Top + 4, r.Width - 6, r.Height - 8, 35, 225);
-                    graphics.DrawArc(pen, r.Left + 4, r.Top + 4, r.Width - 8, r.Height - 8, 215, 225);
-                    graphics.FillPolygon(brush, new[]
-                    {
-                        new PointF(r.Right - 3, r.Top + r.Height * 0.24F),
-                        new PointF(r.Right - 11, r.Top + r.Height * 0.18F),
-                        new PointF(r.Right - 9, r.Top + r.Height * 0.36F)
-                    });
-                    graphics.FillPolygon(brush, new[]
-                    {
-                        new PointF(r.Left + 3, r.Top + r.Height * 0.76F),
-                        new PointF(r.Left + 11, r.Top + r.Height * 0.82F),
-                        new PointF(r.Left + 9, r.Top + r.Height * 0.64F)
-                    });
-                    break;
-
-                case ModuleIconKind.Repair:
-                    graphics.DrawLine(pen, r.Left + r.Width * 0.26F, r.Top + r.Height * 0.76F, r.Left + r.Width * 0.70F, r.Top + r.Height * 0.32F);
-                    graphics.DrawEllipse(pen, r.Left + r.Width * 0.58F, r.Top + r.Height * 0.14F, r.Width * 0.28F, r.Height * 0.28F);
-                    graphics.DrawLine(pen, r.Left + r.Width * 0.24F, r.Top + r.Height * 0.78F, r.Left + r.Width * 0.15F, r.Top + r.Height * 0.69F);
-                    graphics.DrawLine(pen, r.Left + r.Width * 0.35F, r.Top + r.Height * 0.86F, r.Left + r.Width * 0.27F, r.Top + r.Height * 0.78F);
-                    break;
-
-                case ModuleIconKind.Teams:
-                    using (var teamsFont = new Font("Segoe UI", 17F, FontStyle.Bold, GraphicsUnit.Pixel))
-                    {
-                        graphics.DrawString("T", teamsFont, brush, r.Left + r.Width * 0.10F, r.Top + r.Height * 0.24F);
-                    }
-                    graphics.FillEllipse(lightBrush, r.Left + r.Width * 0.60F, r.Top + r.Height * 0.16F, r.Width * 0.22F, r.Height * 0.22F);
-                    graphics.FillEllipse(brush, r.Left + r.Width * 0.66F, r.Top + r.Height * 0.46F, r.Width * 0.24F, r.Height * 0.30F);
-                    using (GraphicsPath tCard = BuildRoundedPath(Rectangle.Round(new RectangleF(r.Left + r.Width * 0.18F, r.Top + r.Height * 0.34F, r.Width * 0.48F, r.Height * 0.42F)), 5))
-                    {
-                        graphics.FillPath(new SolidBrush(Color.FromArgb(210, color)), tCard);
-                    }
-                    break;
-
-                case ModuleIconKind.Outlook:
-                    using (GraphicsPath app = BuildRoundedPath(Rectangle.Round(new RectangleF(r.Left + r.Width * 0.16F, r.Top + r.Height * 0.26F, r.Width * 0.38F, r.Height * 0.50F)), 5))
-                    {
-                        graphics.FillPath(brush, app);
-                    }
-                    using (var outlookFont = new Font("Segoe UI", 13F, FontStyle.Bold, GraphicsUnit.Pixel))
-                    using (var whiteBrush = new SolidBrush(Color.White))
-                    {
-                        graphics.DrawString("O", outlookFont, whiteBrush, r.Left + r.Width * 0.24F, r.Top + r.Height * 0.36F);
-                    }
-                    using (GraphicsPath mail = BuildRoundedPath(Rectangle.Round(new RectangleF(r.Left + r.Width * 0.44F, r.Top + r.Height * 0.34F, r.Width * 0.42F, r.Height * 0.34F)), 4))
-                    {
-                        graphics.FillPath(lightBrush, mail);
-                        graphics.DrawPath(pen, mail);
-                    }
-                    graphics.DrawLine(pen, r.Left + r.Width * 0.47F, r.Top + r.Height * 0.38F, r.Left + r.Width * 0.65F, r.Top + r.Height * 0.54F);
-                    graphics.DrawLine(pen, r.Left + r.Width * 0.83F, r.Top + r.Height * 0.38F, r.Left + r.Width * 0.65F, r.Top + r.Height * 0.54F);
-                    break;
+                using Stream stream = assembly.GetManifestResourceStream(resource.Value)
+                    ?? throw new InvalidOperationException($"Missing home module icon resource: {resource.Value}");
+                using Image source = Image.FromStream(stream);
+                images[resource.Key] = new Bitmap(source);
             }
 
-            return bitmap;
+            return images;
         }
 
         private void LayoutControls()
@@ -420,22 +309,25 @@ namespace Office365CleanupTool
 
             int viewportWidth = _scrollHost.ClientSize.Width;
             int viewportHeight = _scrollHost.ClientSize.Height;
-            bool compact = viewportHeight < 690;
-            int margin = compact ? 38 : 46;
-            int availableWidth = Math.Max(1040, Math.Min(1600, viewportWidth - margin * 2));
+            bool compact = viewportHeight < 690 || viewportWidth < 980;
+            int margin = viewportWidth < 760 ? 20 : compact ? 32 : 46;
+            int availableWidth = Math.Max(520, Math.Min(1600, viewportWidth - margin * 2));
             int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
             int workspaceTop = compact ? 38 : 58;
             int titleTop = compact ? 34 : 42;
             int moduleTop = compact ? 108 : 132;
             int cardGap = compact ? 22 : 30;
             int workspaceBottomPadding = compact ? 30 : 50;
+            int columnCount = availableWidth >= 980 ? 3 : availableWidth >= 680 ? 2 : 1;
+            int rowCount = (int)Math.Ceiling(_modules.Length / (double)columnCount);
+            int visibleRows = Math.Min(rowCount, 2);
             int moduleHeight = compact
-                ? Math.Max(190, Math.Min(214, (viewportHeight - workspaceTop - 14 - moduleTop - cardGap - workspaceBottomPadding) / 2))
+                ? Math.Max(204, Math.Min(232, (viewportHeight - workspaceTop - 14 - moduleTop - cardGap - workspaceBottomPadding) / Math.Max(1, visibleRows)))
                 : Math.Max(238, Math.Min(314, (viewportHeight - 298) / 2));
-            bool roomy = moduleHeight > 260;
-            int innerLeft = compact ? 42 : roomy ? 56 : 48;
+            bool roomy = moduleHeight > 260 && columnCount == 3;
+            int innerLeft = availableWidth < 680 ? 30 : compact ? 42 : roomy ? 56 : 48;
             int innerWidth = availableWidth - innerLeft * 2;
-            int columnWidth = (innerWidth - cardGap * 2) / 3;
+            int columnWidth = (innerWidth - cardGap * (columnCount - 1)) / columnCount;
 
             _workspaceCard.Location = new Point(contentLeft, workspaceTop);
             _workspaceCard.Size = new Size(availableWidth, 620);
@@ -448,17 +340,18 @@ namespace Office365CleanupTool
             int top = compact ? moduleTop : roomy ? 166 : 132;
             for (int i = 0; i < _modules.Length; i++)
             {
-                int column = i % 3;
-                int row = i / 3;
+                int column = i % columnCount;
+                int row = i / columnCount;
                 int left = innerLeft + column * (columnWidth + cardGap);
                 int cardTop = top + row * (moduleHeight + cardGap);
 
                 LayoutModuleDescription(_modules[i], left, cardTop, columnWidth, moduleHeight);
             }
 
-            int rowCount = (_modules.Length + 2) / 3;
             int contentBottom = top + rowCount * moduleHeight + (rowCount - 1) * cardGap;
             _workspaceCard.Height = contentBottom + (compact ? workspaceBottomPadding : roomy ? 58 : 50);
+            _contentPanel.Width = Math.Max(viewportWidth - 1, contentLeft + availableWidth + margin);
+            _contentPanel.Height = _workspaceCard.Bottom + workspaceTop;
         }
 
         private static void LayoutModuleDescription(ModuleDescriptionControls module, int left, int top, int width, int height)
@@ -467,23 +360,27 @@ namespace Office365CleanupTool
             module.Container.Size = new Size(width, height);
             bool roomy = height > 260;
             bool compact = height < 230;
-            int leftPad = compact ? 34 : 36;
-            int iconSize = compact ? 48 : roomy ? 76 : 58;
-            int iconTop = compact ? 24 : roomy ? 38 : 32;
-            int titleTop = compact ? 82 : roomy ? 130 : 112;
-            int titleHeight = compact ? 28 : 38;
-            int summaryTop = compact ? 118 : roomy ? 176 : 146;
+            int leftPad = compact ? 30 : roomy ? 38 : 34;
+            int rightPad = leftPad;
+            int iconSize = compact ? 46 : roomy ? 58 : 52;
+            int iconTop = compact ? 24 : roomy ? 34 : 30;
+            int titleHeight = iconSize;
+            int titleGap = compact ? 14 : 18;
+            int titleLeft = leftPad + iconSize + titleGap;
+            int titleTop = iconTop;
+            int summaryTop = iconTop + iconSize + (compact ? 18 : roomy ? 24 : 20);
+            int bottomPad = compact ? 18 : 24;
 
-            ApplyLabelFont(module.Title, compact ? 14.2F : 16.2F, FontStyle.Bold);
+            ApplyLabelFont(module.Title, compact ? 17.2F : roomy ? 20.2F : 18.8F, FontStyle.Bold);
             ApplyLabelFont(module.Summary, compact ? 11.2F : 12.7F, FontStyle.Regular);
 
             module.Icon.Location = new Point(leftPad, iconTop);
             module.Icon.Size = new Size(iconSize, iconSize);
-            ApplyRoundedRegion(module.Icon, compact ? 16 : roomy ? 20 : 18);
-            module.Title.Location = new Point(leftPad, titleTop);
-            module.Title.Size = new Size(width - leftPad * 2, titleHeight);
+            module.Title.Location = new Point(titleLeft, titleTop);
+            module.Title.Size = new Size(Math.Max(80, width - titleLeft - rightPad), titleHeight);
+            module.Title.TextAlign = ContentAlignment.MiddleLeft;
             module.Summary.Location = new Point(leftPad, summaryTop);
-            module.Summary.Size = new Size(width - leftPad * 2, compact ? height - summaryTop - 12 : roomy ? 86 : 72);
+            module.Summary.Size = new Size(width - leftPad - rightPad, Math.Max(54, height - summaryTop - bottomPad));
             module.Detail.Location = new Point(leftPad, 202);
             module.Detail.Size = new Size(width - 112, 24);
             module.Arrow.Location = new Point(width - 68, roomy ? height - 66 : height - 54);

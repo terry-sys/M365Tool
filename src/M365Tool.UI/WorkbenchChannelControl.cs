@@ -51,7 +51,7 @@ namespace Office365CleanupTool
 
         public WorkbenchChannelControl(OfficeChannelService officeChannelService)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _officeChannelService = officeChannelService;
             _language = LocalizationService.ResolveLanguage("Auto");
 

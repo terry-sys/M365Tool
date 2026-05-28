@@ -16,6 +16,8 @@ namespace Office365CleanupTool.Services
 
         public string LastValidatedAvatarUrl { get; set; } = string.Empty;
 
+        public string LastValidatedAvatarPath { get; set; } = string.Empty;
+
         public DateTime? LastValidatedAtUtc { get; set; }
     }
 

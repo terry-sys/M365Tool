@@ -480,7 +480,7 @@
     <value>可以在这里查看频道切换的状态、目标版本和执行结果。</value>
   </data>
   <data name="TXT_C91FA2DE" xml:space="preserve">
-    <value>Microsoft 365 运维工作台</value>
+    <value>21Vianet Office 运维工具</value>
   </data>
   <data name="TXT_CD6458DE" xml:space="preserve">
     <value>卸载目标</value>
@@ -501,7 +501,7 @@
     <value>删除登录记录</value>
   </data>
   <data name="TXT_DAD1AFFF" xml:space="preserve">
-    <value>欢迎使用 21V M365助手。</value>
+    <value>欢迎使用 21Vianet Office工具箱。</value>
   </data>
   <data name="TXT_DC839411" xml:space="preserve">
     <value>版本类型</value>

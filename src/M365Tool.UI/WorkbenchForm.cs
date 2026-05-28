@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows.Forms;
 using Office365CleanupTool.Services;
 
@@ -31,6 +34,7 @@ namespace Office365CleanupTool
         private readonly Label _lblAccountAvatar;
         private readonly Label _lblAccountName;
         private readonly Label _lblAccountState;
+        private readonly Panel _accountDivider;
         private readonly Button _btnSignIn;
         private readonly Button _btnSignOut;
         private Image? _accountAvatarImage;
@@ -41,6 +45,18 @@ namespace Office365CleanupTool
         private readonly Dictionary<string, Button> _navButtons = new();
         private readonly Dictionary<string, string> _navButtonTexts = new();
         private readonly Dictionary<string, string> _navButtonIcons = new();
+        private static readonly IReadOnlyDictionary<string, string> NavPngIconResourceNames = new Dictionary<string, string>
+        {
+            ["install"] = "M365Tool.Assets.Icons.Home.install_exact_preview_tile_128.png",
+            ["uninstall"] = "M365Tool.Assets.Icons.Home.uninstall_exact_preview_tile_128.png",
+            ["channel"] = "M365Tool.Assets.Icons.Home.update_channel_exact_preview_tile_128.png",
+            ["repair"] = "M365Tool.Assets.Icons.Home.cleanup_repair_exact_preview_tile_128.png",
+            ["teams"] = "M365Tool.Assets.Icons.Home.teams_tools_exact_preview_tile_128.png",
+            ["outlook"] = "M365Tool.Assets.Icons.Home.outlook_tools_exact_preview_tile_128.png"
+        };
+
+        private static readonly Lazy<IReadOnlyDictionary<string, Image>> NavPngIconImages = new(() => LoadNavPngIconImages(1F));
+        private static readonly Lazy<IReadOnlyDictionary<string, Image>> DisabledNavPngIconImages = new(() => LoadNavPngIconImages(0.38F));
         private readonly ToolTip _navToolTip = new()
         {
             ShowAlways = true,
@@ -62,25 +78,25 @@ namespace Office365CleanupTool
         private bool _sessionVerified;
         private UiLanguage _currentLanguage;
         private string _currentPageKey = "home";
-
         public WorkbenchForm()
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _officeUninstallService = new OfficeUninstallService(_scriptRunner);
             _cleanupService = new CleanupService(_scriptRunner);
             _networkRepairService = new NetworkRepairService(_scriptRunner);
             _appSettingsService = new AppSettingsService();
             _appSettings = _appSettingsService.Load();
+            ResetStaleValidatedProfile();
             _currentLanguage = LocalizationService.ResolveLanguage(_appSettings.LanguageMode);
             _sessionVerified = _appSettings.HasValidated21VAccount &&
                                (!string.IsNullOrWhiteSpace(_appSettings.LastValidatedAccount) ||
                                 !string.IsNullOrWhiteSpace(_appSettings.LastValidatedDisplayName));
 
-            Text = "21V M365助手";
+            Text = "21Vianet Office工具箱";
             Icon = AppIconProvider.GetAppIcon() ?? Icon;
             ShowIcon = true;
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1240, 820);
+            MinimumSize = new Size(1024, 720);
             Size = new Size(1600, 1000);
             BackColor = Color.White;
 
@@ -164,7 +180,7 @@ namespace Office365CleanupTool
 
             _lblAppTitle = new Label
             {
-                Text = "M365助手",
+                Text = "Office工具箱",
                 Font = new Font("Microsoft YaHei UI", 12.2F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
@@ -174,7 +190,7 @@ namespace Office365CleanupTool
 
             _lblAppSubtitle = new Label
             {
-                Text = "Microsoft 365 运维工作台",
+                Text = "21Vianet Office 运维工具",
                 Font = new Font("Microsoft YaHei UI", 8.4F),
                 ForeColor = Color.FromArgb(106, 124, 148),
                 BackColor = Color.Transparent,
@@ -220,11 +236,12 @@ namespace Office365CleanupTool
                 TextAlign = ContentAlignment.MiddleCenter,
                 UseMnemonic = false
             };
+            _lblAccountAvatar.Paint += (_, e) => PaintGuestAccountIcon(e.Graphics, _lblAccountAvatar.ClientRectangle);
             ApplyRoundedRegion(_lblAccountAvatar, 22);
 
             _lblAccountName = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9.4F, FontStyle.Bold),
+                Font = new Font("Microsoft YaHei UI", 9.6F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -237,7 +254,15 @@ namespace Office365CleanupTool
                 ForeColor = WorkbenchUi.TertiaryTextColor,
                 BackColor = Color.Transparent,
                 TextAlign = ContentAlignment.MiddleLeft,
-                AutoEllipsis = true
+                AutoEllipsis = true,
+                Visible = false
+            };
+
+            _accountDivider = new Panel
+            {
+                BackColor = Color.FromArgb(205, 220, 238),
+                Size = new Size(1, 18),
+                Visible = false
             };
 
             _btnSignIn = WorkbenchUi.CreatePrimaryButton("登录", Point.Empty, new Size(80, 38), 19);
@@ -245,12 +270,12 @@ namespace Office365CleanupTool
             _btnSignIn.TabStop = false;
             _btnSignIn.Click += (_, _) => HandleSignIn();
 
-            _btnSignOut = WorkbenchUi.CreateTextButton("注销", Point.Empty, new Size(84, 38), 19);
-            _btnSignOut.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
+            _btnSignOut = WorkbenchUi.CreateTextButton("注销", Point.Empty, new Size(54, 30), 15);
+            _btnSignOut.Font = new Font("Microsoft YaHei UI", 8.9F, FontStyle.Bold);
             _btnSignOut.TabStop = false;
             _btnSignOut.Click += (_, _) => HandleSignOut();
 
-            _accountPanel.Controls.AddRange(new Control[] { _lblAccountAvatar, _lblAccountName, _lblAccountState, _btnSignIn, _btnSignOut });
+            _accountPanel.Controls.AddRange(new Control[] { _lblAccountAvatar, _lblAccountName, _lblAccountState, _accountDivider, _btnSignIn, _btnSignOut });
 
             _progressBar = new ProgressBar
             {
@@ -292,6 +317,7 @@ namespace Office365CleanupTool
             BuildSidebar();
             ApplyLanguage();
             Resize += (_, _) => ApplyWorkbenchLayout();
+            DpiChanged += (_, _) => this.BeginInvokeWhenReady(ApplyWorkbenchLayout);
             Shown += (_, _) => OnWorkbenchShown();
             ApplyWorkbenchLayout();
             ShowPage("home");
@@ -372,14 +398,14 @@ namespace Office365CleanupTool
             var green = Color.FromArgb(28, 171, 96);
 
             Size logoSize = TextRenderer.MeasureText(graphics, "21V", logoFont, Size.Empty, flags);
-            Size titleSize = TextRenderer.MeasureText(graphics, "M365助手", titleFont, Size.Empty, flags);
+            Size titleSize = TextRenderer.MeasureText(graphics, "Office工具箱", titleFont, Size.Empty, flags);
             int logoTop = (bounds.Height - logoSize.Height) / 2;
             int titleTop = (bounds.Height - titleSize.Height) / 2;
 
             TextRenderer.DrawText(graphics, "21", logoFont, new Point(0, logoTop), blue, flags);
             int vLeft = TextRenderer.MeasureText(graphics, "21", logoFont, Size.Empty, flags).Width - 2;
             TextRenderer.DrawText(graphics, "V", logoFont, new Point(vLeft, logoTop), green, flags);
-            TextRenderer.DrawText(graphics, "M365助手", titleFont, new Point(58, titleTop), WorkbenchUi.PrimaryTextColor, flags);
+            TextRenderer.DrawText(graphics, "Office工具箱", titleFont, new Point(58, titleTop), WorkbenchUi.PrimaryTextColor, flags);
         }
 
         private static void PaintAccountCapsule(Graphics graphics, Rectangle bounds)
@@ -390,19 +416,44 @@ namespace Office365CleanupTool
             }
 
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            using var shadowPath = BuildRoundedPath(new Rectangle(4, 6, bounds.Width - 8, bounds.Height - 8), 28);
-            using var shadowBrush = new SolidBrush(Color.FromArgb(10, 82, 126, 178));
+            using var ambientShadowPath = BuildRoundedPath(new Rectangle(5, 8, bounds.Width - 10, bounds.Height - 12), 28);
+            using var ambientShadow = new SolidBrush(Color.FromArgb(14, 88, 130, 185));
+            graphics.FillPath(ambientShadow, ambientShadowPath);
+
+            using var shadowPath = BuildRoundedPath(new Rectangle(2, 4, bounds.Width - 5, bounds.Height - 7), 28);
+            using var shadowBrush = new SolidBrush(Color.FromArgb(12, 54, 104, 166));
             graphics.FillPath(shadowBrush, shadowPath);
 
-            using var path = BuildRoundedPath(new Rectangle(0, 0, bounds.Width - 2, bounds.Height - 2), 28);
+            using var path = BuildRoundedPath(new Rectangle(0, 0, bounds.Width - 3, bounds.Height - 5), 28);
             using var fill = new LinearGradientBrush(
                 new Rectangle(0, 0, bounds.Width, bounds.Height),
-                Color.FromArgb(255, 255, 255, 255),
-                Color.FromArgb(252, 254, 255),
+                Color.FromArgb(255, 255, 255),
+                Color.FromArgb(248, 251, 255),
                 LinearGradientMode.Vertical);
-            using var border = new Pen(Color.FromArgb(242, 248, 255));
+            using var border = new Pen(Color.FromArgb(220, 235, 250));
             graphics.FillPath(fill, path);
             graphics.DrawPath(border, path);
+        }
+
+        private void PaintGuestAccountIcon(Graphics graphics, Rectangle bounds)
+        {
+            if (HasAccessGranted() || bounds.Width <= 2 || bounds.Height <= 2)
+            {
+                return;
+            }
+
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using var pen = new Pen(Color.FromArgb(90, 135, 210), 1.8F)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round,
+                LineJoin = LineJoin.Round
+            };
+
+            RectangleF head = new(bounds.Left + bounds.Width * 0.36F, bounds.Top + bounds.Height * 0.24F, bounds.Width * 0.28F, bounds.Height * 0.28F);
+            RectangleF shoulders = new(bounds.Left + bounds.Width * 0.24F, bounds.Top + bounds.Height * 0.54F, bounds.Width * 0.52F, bounds.Height * 0.28F);
+            graphics.DrawEllipse(pen, head);
+            graphics.DrawArc(pen, shoulders, 205, 130);
         }
 
         private static Panel BuildDivider(DockStyle dock, int thickness)
@@ -498,14 +549,14 @@ namespace Office365CleanupTool
 
         private void ApplyLanguage()
         {
-            Text = "21V M365助手";
+            Text = "21Vianet Office工具箱";
             _lblBrandGlyph.Text = "21V";
-            _lblAppTitle.Text = "M365助手";
-            _lblAppSubtitle.Text = T("Microsoft 365 运维工作台", "Microsoft 365 Operations Console");
+            _lblAppTitle.Text = "Office工具箱";
+            _lblAppSubtitle.Text = T("21Vianet Office 运维工具", "21Vianet Office Toolbox");
             _navToolTip.SetToolTip(_btnToggleSidebar, T("展开或折叠导航", "Expand or collapse navigation"));
             _btnSignIn.Text = T("登录", "Sign in");
             _btnSignOut.Text = T("注销", "Sign out");
-            _navToolTip.SetToolTip(_btnSignIn, T("登录并验证 21V 门户", "Sign in and verify 21V portal"));
+            _navToolTip.SetToolTip(_btnSignIn, T("登录并验证 21V 账户", "Sign in and verify 21V account"));
             _navToolTip.SetToolTip(_btnSignOut, T("注销并重置当前验证状态", "Sign out and reset current verification state"));
             UpdateHeaderAccountPresentation();
 
@@ -580,30 +631,69 @@ namespace Office365CleanupTool
 
         private bool PromptPortalVerification()
         {
-            using var dialog = new PartnerLoginVerificationForm(_currentLanguage);
+            var dialog = new MyAccountLoginVerificationForm(_currentLanguage);
             DialogResult result = dialog.ShowDialog(this);
             bool verified = result == DialogResult.OK &&
                             dialog.IsVerified;
             if (verified)
             {
                 string verifiedAccount = dialog.VerifiedAccount.Trim();
-                string verifiedUserName = string.IsNullOrWhiteSpace(verifiedAccount)
-                    ? dialog.VerifiedUserName.Trim()
-                    : ExtractUserNameFromAccount(verifiedAccount);
+                string previousAccount = (_appSettings.LastValidatedAccount ?? string.Empty).Trim();
+                string previousDisplayName = (_appSettings.LastValidatedDisplayName ?? string.Empty).Trim();
+                string previousAvatarPath = (_appSettings.LastValidatedAvatarPath ?? string.Empty).Trim();
+                bool sameAccount = string.Equals(previousAccount, verifiedAccount, StringComparison.OrdinalIgnoreCase);
+                string fallbackUserName = ExtractUserNameFromAccount(verifiedAccount);
+                string dialogUserName = (dialog.VerifiedUserName ?? string.Empty).Trim();
+                bool hasReliableDialogName = dialog.HasVerifiedProfileDisplayName &&
+                                             !IsInvalidCachedDisplayName(dialogUserName) &&
+                                             !IsFallbackAccountDisplayName(dialogUserName, verifiedAccount);
+                bool hasReliablePreviousName = sameAccount &&
+                                               !IsInvalidCachedDisplayName(previousDisplayName) &&
+                                               !IsFallbackAccountDisplayName(previousDisplayName, verifiedAccount);
+                string verifiedUserName = hasReliableDialogName
+                    ? dialogUserName
+                    : hasReliablePreviousName
+                        ? previousDisplayName
+                        : !string.IsNullOrWhiteSpace(dialogUserName)
+                            ? dialogUserName
+                            : fallbackUserName;
                 _sessionVerified = true;
                 _appSettings.HasValidated21VAccount = true;
                 _appSettings.LastValidatedAccount = verifiedAccount;
                 _appSettings.LastValidatedDisplayName = verifiedUserName;
                 _appSettings.LastValidatedAvatarUrl = string.Empty;
+                string avatarPath = SaveValidatedAvatar(dialog.VerifiedAvatarBytes, verifiedAccount, verifiedUserName);
+                if (!string.IsNullOrWhiteSpace(avatarPath))
+                {
+                    _appSettings.LastValidatedAvatarPath = avatarPath;
+                }
+                else if (sameAccount && IsUsableAvatarPath(previousAvatarPath))
+                {
+                    _appSettings.LastValidatedAvatarPath = previousAvatarPath;
+                }
+                else if (!string.Equals(previousAccount, verifiedAccount, StringComparison.OrdinalIgnoreCase))
+                {
+                    _appSettings.LastValidatedAvatarPath = string.Empty;
+                }
+
                 _appSettings.LastValidatedAtUtc = DateTime.UtcNow;
                 _appSettingsService.Save(_appSettings);
+                string avatarSaveReason = !string.IsNullOrWhiteSpace(avatarPath)
+                    ? "saved"
+                    : sameAccount && IsUsableAvatarPath(previousAvatarPath)
+                        ? "kept-existing"
+                        : "no-avatar-bytes";
+                WriteAvatarSaveTrace(verifiedAccount, verifiedUserName, dialog.VerifiedAvatarBytes?.Length ?? 0, _appSettings.LastValidatedAvatarPath ?? string.Empty, avatarSaveReason);
+                ResetAccountAvatarImage();
                 RefreshSessionVerificationFromSettings();
                 ApplyLanguage();
                 ApplyAccessControl();
                 ShowPage("home");
+                dialog.Dispose();
                 return true;
             }
 
+            dialog.Dispose();
             RefreshSessionVerificationFromSettings();
             ApplyLanguage();
             ApplyAccessControl();
@@ -616,9 +706,89 @@ namespace Office365CleanupTool
             _appSettings.LastValidatedAccount = string.Empty;
             _appSettings.LastValidatedDisplayName = string.Empty;
             _appSettings.LastValidatedAvatarUrl = string.Empty;
+            DeleteCachedAvatar(_appSettings.LastValidatedAvatarPath);
+            _appSettings.LastValidatedAvatarPath = string.Empty;
             _appSettings.LastValidatedAtUtc = null;
             _appSettingsService.Save(_appSettings);
+            ResetAccountAvatarImage();
             RefreshSessionVerificationFromSettings();
+        }
+
+        private void ResetStaleValidatedProfile()
+        {
+            if (!_appSettings.HasValidated21VAccount)
+            {
+                return;
+            }
+
+            string account = (_appSettings.LastValidatedAccount ?? string.Empty).Trim();
+            string displayName = (_appSettings.LastValidatedDisplayName ?? string.Empty).Trim();
+            bool invalidDisplayName = IsInvalidCachedDisplayName(displayName);
+            bool placeholderAvatar = IsPlaceholderAvatarCache(_appSettings.LastValidatedAvatarPath);
+            if (!invalidDisplayName)
+            {
+                if (placeholderAvatar)
+                {
+                    DeleteCachedAvatar(_appSettings.LastValidatedAvatarPath);
+                    _appSettings.LastValidatedAvatarPath = string.Empty;
+                    _appSettingsService.Save(_appSettings);
+                }
+
+                return;
+            }
+
+            _appSettings.HasValidated21VAccount = false;
+            _appSettings.LastValidatedAccount = string.Empty;
+            _appSettings.LastValidatedDisplayName = string.Empty;
+            _appSettings.LastValidatedAvatarUrl = string.Empty;
+            DeleteCachedAvatar(_appSettings.LastValidatedAvatarPath);
+            _appSettings.LastValidatedAvatarPath = string.Empty;
+            _appSettings.LastValidatedAtUtc = null;
+            _appSettingsService.Save(_appSettings);
+        }
+
+        private static bool IsPlaceholderAvatarCache(string path)
+        {
+            try
+            {
+                return string.IsNullOrWhiteSpace(path) ||
+                       !File.Exists(path);
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        private static bool IsInvalidCachedDisplayName(string displayName)
+        {
+            return string.IsNullOrWhiteSpace(displayName) ||
+                   System.Text.RegularExpressions.Regex.IsMatch(
+                       displayName.Trim(),
+                       @"^[\{\}\[\]\(\),.:;\-_=+]+$|^(管理|创建|应用|搜索|文件|最近|已共享|收藏夹|类型|取消固定|更多|设置及其他)$",
+                       System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        }
+
+        private static bool IsFallbackAccountDisplayName(string displayName, string account)
+        {
+            if (string.IsNullOrWhiteSpace(displayName) || string.IsNullOrWhiteSpace(account))
+            {
+                return false;
+            }
+
+            return string.Equals(displayName.Trim(), ExtractUserNameFromAccount(account), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsUsableAvatarPath(string path)
+        {
+            try
+            {
+                return !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void RefreshSessionVerificationFromSettings()
@@ -700,9 +870,7 @@ namespace Office365CleanupTool
                 {
                     button.TextAlign = ContentAlignment.MiddleCenter;
                     button.Padding = Padding.Empty;
-                    button.Image = null;
-                    button.Font = new Font("Segoe MDL2 Assets", 13.5F, FontStyle.Regular);
-                    button.Text = _navButtonIcons[key];
+                    ApplyCollapsedNavIcon(button, key, isEnabled: true);
                 }
                 else
                 {
@@ -766,7 +934,7 @@ namespace Office365CleanupTool
             {
                 key = "home";
                 MessageBox.Show(
-                    T("请先点击右上角“登录”完成 21V 门户验证，再使用其他功能。", "Click Sign in at the top right to complete 21V portal verification before using other pages."),
+                    T("请先点击右上角“登录”完成 21V 账户验证，再使用其他功能。", "Click Sign in at the top right to complete 21V account verification before using other pages."),
                     T("访问受限", "Access Restricted"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
@@ -819,6 +987,7 @@ namespace Office365CleanupTool
             else if (page is WorkbenchSettingsControl settingsPage)
             {
                 settingsPage.ApplyLanguage(_currentLanguage);
+                settingsPage.PrepareForDisplay();
             }
 
             if (_isSidebarCollapsed)
@@ -855,34 +1024,49 @@ namespace Office365CleanupTool
 
             const int rightMargin = 48;
             const int top = 88;
-            const int panelHeight = 74;
-            const int paddingX = 22;
-            const int avatarSize = 46;
-            const int buttonGap = 14;
+            const int panelHeight = 62;
+            const int dividerGap = 12;
+            const int dividerHeight = 18;
             bool isSignInMode = _btnSignIn.Visible;
-            int accountWidth = 312;
+            int paddingLeft = isSignInMode ? 12 : 14;
+            int paddingRight = isSignInMode ? 12 : 14;
+            int avatarSize = isSignInMode ? 36 : 42;
+            int avatarTextGap = isSignInMode ? 12 : 14;
+            Button activeButton = isSignInMode ? _btnSignIn : _btnSignOut;
+            Button inactiveButton = isSignInMode ? _btnSignOut : _btnSignIn;
+            int buttonWidth = Math.Clamp(TextRenderer.MeasureText(activeButton.Text, activeButton.Font).Width + (isSignInMode ? 26 : 18), isSignInMode ? 76 : 48, isSignInMode ? 96 : 64);
+            int buttonHeight = isSignInMode ? 36 : 30;
+            activeButton.Size = new Size(buttonWidth, buttonHeight);
+            int measuredNameWidth = TextRenderer.MeasureText(_lblAccountName.Text, _lblAccountName.Font).Width + 4;
+            int textWidth = isSignInMode ? Math.Clamp(measuredNameWidth, 52, 86) : Math.Clamp(measuredNameWidth, 64, 172);
+            int signedInWidth = paddingLeft + avatarSize + avatarTextGap + textWidth + dividerGap + 1 + dividerGap + activeButton.Width + paddingRight;
+            int signInWidth = paddingLeft + avatarSize + avatarTextGap + textWidth + 14 + activeButton.Width + paddingRight;
+            int accountWidth = isSignInMode ? signInWidth : signedInWidth;
             _accountPanel.Size = new Size(accountWidth, panelHeight);
             _accountPanel.Location = new Point(_headerPanel.ClientSize.Width - accountWidth - rightMargin, top);
-            ApplyRoundedRegion(_accountPanel, 28);
+            ApplyRoundedRegion(_accountPanel, 29);
+            _accountPanel.Invalidate();
 
             _lblAccountAvatar.Visible = true;
-            _lblAccountAvatar.Location = new Point(22, 14);
+            _lblAccountAvatar.Location = new Point(paddingLeft, (panelHeight - avatarSize - 4) / 2);
             _lblAccountAvatar.Size = new Size(avatarSize, avatarSize);
             ApplyRoundedRegion(_lblAccountAvatar, avatarSize / 2);
 
-            Button activeButton = isSignInMode ? _btnSignIn : _btnSignOut;
-            Button inactiveButton = isSignInMode ? _btnSignOut : _btnSignIn;
             activeButton.Visible = true;
-            activeButton.Location = new Point(accountWidth - paddingX - activeButton.Width, 18);
-            inactiveButton.Location = new Point(accountWidth - paddingX - inactiveButton.Width, 18);
+            int buttonTop = (panelHeight - activeButton.Height - 4) / 2;
+            activeButton.Location = new Point(accountWidth - paddingRight - activeButton.Width, buttonTop);
+            inactiveButton.Location = new Point(accountWidth - paddingRight - inactiveButton.Width, buttonTop);
 
-            int textLeft = _lblAccountAvatar.Right + 16;
-            int textRight = activeButton.Left - buttonGap;
-            int textWidth = Math.Max(128, textRight - textLeft);
-            _lblAccountName.Location = new Point(textLeft, 18);
-            _lblAccountName.Size = new Size(textWidth, 22);
-            _lblAccountState.Location = new Point(textLeft, 42);
-            _lblAccountState.Size = new Size(textWidth, 20);
+            int textLeft = _lblAccountAvatar.Right + avatarTextGap;
+            _lblAccountName.Visible = true;
+            _lblAccountName.Location = new Point(textLeft, (panelHeight - 24 - 4) / 2);
+            _lblAccountName.Size = new Size(textWidth, 24);
+            _lblAccountState.Location = new Point(textLeft, _lblAccountName.Bottom);
+            _lblAccountState.Size = new Size(textWidth, 0);
+            _lblAccountState.Visible = false;
+            _accountDivider.Visible = !isSignInMode;
+            _accountDivider.Location = new Point(_lblAccountName.Right + dividerGap, (panelHeight - dividerHeight - 4) / 2);
+            _accountDivider.Size = new Size(1, dividerHeight);
 
             int pageWidth = Math.Max(320, _accountPanel.Left - 112);
             _lblPageTitle.Size = new Size(pageWidth, 48);
@@ -897,10 +1081,11 @@ namespace Office365CleanupTool
             _lblAccountName.Text = string.IsNullOrWhiteSpace(userName)
                 ? T("未登录", "Not signed in")
                 : userName;
-            _lblAccountState.Text = isVerified
-                ? T("已通过 21V 验证", "21V verified")
-                : T("未登录，仅首页可用", "Not signed in. Only Home is available.");
-            _lblAccountState.ForeColor = isVerified ? WorkbenchUi.SuccessColor : WorkbenchUi.SecondaryTextColor;
+            _lblAccountName.ForeColor = isVerified
+                ? WorkbenchUi.PrimaryTextColor
+                : Color.FromArgb(92, 111, 136);
+            _lblAccountState.Text = string.Empty;
+            _lblAccountState.Visible = false;
             UpdateAccountAvatar(userName);
             _btnSignIn.Visible = !isVerified;
             _btnSignIn.Enabled = !isVerified;
@@ -911,7 +1096,17 @@ namespace Office365CleanupTool
 
         private void UpdateAccountAvatar(string userName)
         {
-            _accountAvatarImage ??= TryLoadWindowsAccountAvatar(46);
+            bool isVerified = HasAccessGranted();
+            if (!isVerified)
+            {
+                ResetAccountAvatarImage();
+            }
+
+            if (isVerified)
+            {
+                _accountAvatarImage ??= TryLoadValidatedAvatar(_appSettings.LastValidatedAvatarPath, 42);
+            }
+
             if (_accountAvatarImage is not null)
             {
                 _lblAccountAvatar.Text = string.Empty;
@@ -920,138 +1115,123 @@ namespace Office365CleanupTool
                 return;
             }
 
-            string initial = string.IsNullOrWhiteSpace(userName) ? "21V" : userName.Trim()[0].ToString().ToUpperInvariant();
+            string initial = isVerified && !string.IsNullOrWhiteSpace(userName) ? userName.Trim()[0].ToString().ToUpperInvariant() : string.Empty;
             _lblAccountAvatar.Image = null;
             _lblAccountAvatar.Text = initial;
-            _lblAccountAvatar.BackColor = WorkbenchUi.PrimaryColor;
+            _lblAccountAvatar.BackColor = isVerified ? WorkbenchUi.PrimaryColor : Color.FromArgb(242, 248, 255);
             _lblAccountAvatar.ForeColor = Color.White;
+            _lblAccountAvatar.Invalidate();
         }
 
-        private static Image? TryLoadWindowsAccountAvatar(int size)
+        private void ResetAccountAvatarImage()
         {
-            var candidates = new List<string>();
-            AddFiles(candidates, Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "AccountPictures"));
-            string publicProfile = Environment.GetEnvironmentVariable("PUBLIC") ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(publicProfile))
+            if (_accountAvatarImage is not null)
             {
-                AddFiles(candidates, Path.Combine(publicProfile, "AccountPictures"), SearchOption.AllDirectories);
+                _lblAccountAvatar.Image = null;
+                _accountAvatarImage.Dispose();
+                _accountAvatarImage = null;
             }
+        }
 
-            foreach (string path in candidates.OrderByDescending(File.GetLastWriteTimeUtc))
+        private static Image? TryLoadValidatedAvatar(string path, int size)
+        {
+            try
             {
-                Image? image = LoadAvatarFile(path, size);
-                if (image is not null)
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
                 {
-                    return image;
+                    return null;
                 }
-            }
 
-            return null;
+                using var source = Image.FromFile(path);
+                return CreateCircularAvatar(source, size);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
-        private static void AddFiles(List<string> files, string directory, SearchOption searchOption = SearchOption.TopDirectoryOnly)
+        private static string SaveValidatedAvatar(byte[]? avatarBytes, string account, string displayName)
         {
-            if (!Directory.Exists(directory))
+            if (avatarBytes is null || avatarBytes.Length < 128)
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                using var input = new MemoryStream(avatarBytes);
+                using var source = Image.FromStream(input);
+                if (source.Width < 16 || source.Height < 16)
+                {
+                    return string.Empty;
+                }
+
+                using var normalized = new Bitmap(source);
+                string identity = string.IsNullOrWhiteSpace(account) ? displayName : account;
+                string directory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "M365Tool",
+                    "AccountAvatar");
+                Directory.CreateDirectory(directory);
+
+                string fileName = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity.Trim().ToLowerInvariant()))) + ".png";
+                string path = Path.Combine(directory, fileName);
+                using var output = new MemoryStream();
+                normalized.Save(output, System.Drawing.Imaging.ImageFormat.Png);
+                File.WriteAllBytes(path, output.ToArray());
+                return path;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static void WriteAvatarSaveTrace(string account, string displayName, int sourceBytes, string path, string reason)
+        {
+            try
+            {
+                string directory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "M365Tool",
+                    "Logs");
+                Directory.CreateDirectory(directory);
+                long fileBytes = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
+                    ? new FileInfo(path).Length
+                    : 0;
+                string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\tavatar-save\tAccount={account}\tDisplay={displayName}\tSourceBytes={sourceBytes}\tPath={path}\tFileBytes={fileBytes}\tReason={reason}{Environment.NewLine}";
+                File.AppendAllText(Path.Combine(directory, "AuthProfileTrace.log"), line);
+            }
+            catch
+            {
+                // Profile trace is best-effort only.
+            }
+        }
+
+        private static void DeleteCachedAvatar(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
             {
                 return;
             }
 
             try
             {
-                files.AddRange(Directory.EnumerateFiles(directory, "*.*", searchOption));
-            }
-            catch
-            {
-                // Avatar lookup is best-effort only.
-            }
-        }
-
-        private static Image? LoadAvatarFile(string path, int size)
-        {
-            try
-            {
-                string extension = Path.GetExtension(path).ToLowerInvariant();
-                if (extension is ".png" or ".jpg" or ".jpeg" or ".bmp")
+                string avatarDirectory = Path.GetFullPath(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "M365Tool",
+                    "AccountAvatar"));
+                string target = Path.GetFullPath(path);
+                if (target.StartsWith(avatarDirectory, StringComparison.OrdinalIgnoreCase) &&
+                    File.Exists(target))
                 {
-                    using var source = Image.FromFile(path);
-                    return CreateCircularAvatar(source, size);
-                }
-
-                if (extension == ".accountpicture-ms")
-                {
-                    return ExtractAccountPicture(path, size);
+                    File.Delete(target);
                 }
             }
             catch
             {
-                return null;
-            }
-
-            return null;
-        }
-
-        private static Image? ExtractAccountPicture(string path, int size)
-        {
-            byte[] data = File.ReadAllBytes(path);
-            Image? best = null;
-            int bestArea = 0;
-
-            foreach ((int start, int length) in FindEmbeddedImages(data))
-            {
-                try
-                {
-                    using var stream = new MemoryStream(data, start, length);
-                    using var source = Image.FromStream(stream);
-                    int area = source.Width * source.Height;
-                    if (area <= bestArea)
-                    {
-                        continue;
-                    }
-
-                    best?.Dispose();
-                    best = CreateCircularAvatar(source, size);
-                    bestArea = area;
-                }
-                catch
-                {
-                    // Try the next embedded image.
-                }
-            }
-
-            return best;
-        }
-
-        private static IEnumerable<(int Start, int Length)> FindEmbeddedImages(byte[] data)
-        {
-            for (int i = 0; i < data.Length - 8; i++)
-            {
-                bool png = data[i] == 0x89 && data[i + 1] == 0x50 && data[i + 2] == 0x4E && data[i + 3] == 0x47;
-                if (png)
-                {
-                    for (int end = i + 8; end < data.Length - 8; end++)
-                    {
-                        if (data[end] == 0x49 && data[end + 1] == 0x45 && data[end + 2] == 0x4E && data[end + 3] == 0x44)
-                        {
-                            yield return (i, end + 8 - i);
-                            i = end + 7;
-                            break;
-                        }
-                    }
-                }
-
-                bool jpeg = data[i] == 0xFF && data[i + 1] == 0xD8;
-                if (jpeg)
-                {
-                    for (int end = i + 2; end < data.Length - 1; end++)
-                    {
-                        if (data[end] == 0xFF && data[end + 1] == 0xD9)
-                        {
-                            yield return (i, end + 2 - i);
-                            i = end + 1;
-                            break;
-                        }
-                    }
-                }
+                // Avatar cleanup is best-effort only.
             }
         }
 
@@ -1080,6 +1260,12 @@ namespace Office365CleanupTool
 
         private string GetHeaderUserName()
         {
+            string displayName = (_appSettings.LastValidatedDisplayName ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                return displayName;
+            }
+
             string account = (_appSettings.LastValidatedAccount ?? string.Empty).Trim();
             if (!string.IsNullOrWhiteSpace(account))
             {
@@ -1110,9 +1296,7 @@ namespace Office365CleanupTool
                     navButton.FlatAppearance.MouseDownBackColor = Color.Transparent;
                     if (_isSidebarCollapsed)
                     {
-                        navButton.Image = null;
-                        navButton.Font = new Font("Segoe MDL2 Assets", 13.5F, FontStyle.Regular);
-                        navButton.Text = _navButtonIcons[navKey];
+                        ApplyCollapsedNavIcon(navButton, navKey, isEnabled: false);
                     }
                     else
                     {
@@ -1132,9 +1316,7 @@ namespace Office365CleanupTool
                 navButton.ForeColor = isActive ? WorkbenchUi.PrimaryColor : WorkbenchUi.SecondaryTextColor;
                 if (_isSidebarCollapsed)
                 {
-                    navButton.Image = null;
-                    navButton.Font = new Font("Segoe MDL2 Assets", 13.5F, FontStyle.Regular);
-                    navButton.Text = _navButtonIcons[navKey];
+                    ApplyCollapsedNavIcon(navButton, navKey, isEnabled: true);
                 }
                 else
                 {
@@ -1145,6 +1327,75 @@ namespace Office365CleanupTool
             }
 
             UpdateSelectionBarPosition();
+        }
+
+        private static void ApplyCollapsedNavIcon(Button button, string key, bool isEnabled)
+        {
+            if (TryGetNavPngIcon(key, isEnabled, out Image? image))
+            {
+                button.Font = new Font("Microsoft YaHei UI", 1F, FontStyle.Regular);
+                button.Text = string.Empty;
+                button.Image = image;
+                button.ImageAlign = ContentAlignment.MiddleCenter;
+                return;
+            }
+
+            button.Image = null;
+            button.ImageAlign = ContentAlignment.MiddleCenter;
+            button.Font = new Font("Segoe MDL2 Assets", 13.5F, FontStyle.Regular);
+            button.Text = GetNavIcon(key);
+        }
+
+        private static bool TryGetNavPngIcon(string key, bool isEnabled, out Image? image)
+        {
+            IReadOnlyDictionary<string, Image> images = isEnabled
+                ? NavPngIconImages.Value
+                : DisabledNavPngIconImages.Value;
+            return images.TryGetValue(key, out image);
+        }
+
+        private static IReadOnlyDictionary<string, Image> LoadNavPngIconImages(float alpha)
+        {
+            var images = new Dictionary<string, Image>();
+            var assembly = typeof(WorkbenchForm).Assembly;
+
+            foreach (KeyValuePair<string, string> resource in NavPngIconResourceNames)
+            {
+                using Stream stream = assembly.GetManifestResourceStream(resource.Value)
+                    ?? throw new InvalidOperationException($"Missing sidebar navigation icon resource: {resource.Value}");
+                using Image source = Image.FromStream(stream);
+                images[resource.Key] = CreateScaledNavIconImage(source, 34, alpha);
+            }
+
+            return images;
+        }
+
+        private static Image CreateScaledNavIconImage(Image source, int size, float alpha)
+        {
+            var bitmap = new Bitmap(size, size);
+            using Graphics graphics = Graphics.FromImage(bitmap);
+            graphics.Clear(Color.Transparent);
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+            var colorMatrix = new ColorMatrix
+            {
+                Matrix33 = alpha
+            };
+            using var attributes = new ImageAttributes();
+            attributes.SetColorMatrix(colorMatrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+            graphics.DrawImage(
+                source,
+                new Rectangle(0, 0, size, size),
+                0,
+                0,
+                source.Width,
+                source.Height,
+                GraphicsUnit.Pixel,
+                attributes);
+
+            return bitmap;
         }
 
         private static void SetNavButtonImage(Button button, string glyph, Color color)
@@ -1347,7 +1598,7 @@ namespace Office365CleanupTool
             }
 
             DialogResult confirm = MessageBox.Show(
-                T("注销将重置当前 21V 门户验证状态。是否继续？", "Signing out will reset the current 21V portal verification state. Continue?"),
+                T("注销将重置当前 21V 账户验证状态。是否继续？", "Signing out will reset the current 21V account verification state. Continue?"),
                 T("确认注销", "Confirm Sign out"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
@@ -1477,7 +1728,7 @@ namespace Office365CleanupTool
             {
                 return key switch
                 {
-                    "home" => ("Home", "Welcome to 21V M365 Assistant"),
+                    "home" => ("Home", "Welcome to 21Vianet Office Toolbox"),
                     "install" => ("Install", "Install M365 Apps, Project, or Visio online with pre-checks"),
                     "uninstall" => ("Uninstall", "Run official SaRA / Get Help scenario to uninstall Office with logs"),
                     "channel" => ("Update Channel", "Switch Office update channel or target a specific build"),
@@ -1491,7 +1742,7 @@ namespace Office365CleanupTool
 
             return key switch
             {
-                "home" => ("首页", "欢迎使用 21V M365助手"),
+                "home" => ("首页", "欢迎使用 21Vianet Office工具箱"),
                 "install" => ("安装", "在线安装 M365 应用、Project 或 Visio，并保留必要的安装前检查"),
                 "uninstall" => ("卸载", "调用微软官方 SaRA / Get Help 场景执行 Office 卸载并保留日志"),
                 "channel" => ("更新频道", "切换 Office 更新频道，或按目标版本执行更新"),

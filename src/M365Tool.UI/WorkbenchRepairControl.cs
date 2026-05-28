@@ -34,7 +34,7 @@ namespace Office365CleanupTool
 
         public WorkbenchRepairControl(CleanupService cleanupService, NetworkRepairService networkRepairService)
         {
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleMode = AutoScaleMode.None;
             _cleanupService = cleanupService;
             _networkRepairService = networkRepairService;
             _cleanupService.ProgressChanged += OnCleanupProgressChanged;

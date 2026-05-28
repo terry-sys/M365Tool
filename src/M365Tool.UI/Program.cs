@@ -19,8 +19,8 @@ namespace Office365CleanupTool
             if (!IsRunningAsAdministrator())
             {
                 MessageBox.Show(
-                    "请使用“以管理员身份运行”启动 21V M365助手。\r\n\r\nThis tool must be run as administrator.",
-                    "21V M365助手",
+                    "请使用“以管理员身份运行”启动 21Vianet Office工具箱。\r\n\r\nThis tool must be run as administrator.",
+                    "21Vianet Office工具箱",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
                 return;
