@@ -65,14 +65,14 @@ namespace Office365CleanupTool
 
             _lblTitle = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(17F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent
             };
 
             _lblDescription = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 10.25F),
+                Font = WorkbenchUi.CreateUiFont(10.25F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent
             };
@@ -97,7 +97,7 @@ namespace Office365CleanupTool
             _lblHelperTitle = WorkbenchUi.CreateSectionTitle(string.Empty, new Point(20, 14));
             _lblHelperDescription = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9.5F),
+                Font = WorkbenchUi.CreateUiFont(9.5F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(20, 42),

@@ -126,7 +126,7 @@ namespace Office365CleanupTool
             _lblBrandGlyph = new Label
             {
                 Text = "21V",
-                Font = new Font("Segoe UI", 23F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateFont("Segoe UI", 23F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryColor,
                 BackColor = Color.Transparent,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -161,7 +161,7 @@ namespace Office365CleanupTool
             _btnToggleSidebar = new Button
             {
                 Text = "\uE700",
-                Font = new Font("Segoe MDL2 Assets", 16.5F, FontStyle.Regular),
+                Font = WorkbenchUi.CreateIconFont(16.5F, FontStyle.Regular),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.FromArgb(246, 251, 255),
                 FlatStyle = FlatStyle.Flat,
@@ -181,7 +181,7 @@ namespace Office365CleanupTool
             _lblAppTitle = new Label
             {
                 Text = "Office工具箱",
-                Font = new Font("Microsoft YaHei UI", 12.2F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(12.2F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(104, 24),
@@ -191,7 +191,7 @@ namespace Office365CleanupTool
             _lblAppSubtitle = new Label
             {
                 Text = "21Vianet Office 运维工具",
-                Font = new Font("Microsoft YaHei UI", 8.4F),
+                Font = WorkbenchUi.CreateUiFont(8.4F),
                 ForeColor = Color.FromArgb(106, 124, 148),
                 BackColor = Color.Transparent,
                 Location = new Point(104, 50),
@@ -201,7 +201,7 @@ namespace Office365CleanupTool
             _lblPageTitle = new Label
             {
                 Text = "首页",
-                Font = new Font("Microsoft YaHei UI", 24F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(24F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(64, 86),
@@ -211,7 +211,7 @@ namespace Office365CleanupTool
             _lblPageDescription = new Label
             {
                 Text = string.Empty,
-                Font = new Font("Microsoft YaHei UI", 11F),
+                Font = WorkbenchUi.CreateUiFont(11F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(66, 132),
@@ -229,7 +229,7 @@ namespace Office365CleanupTool
 
             _lblAccountAvatar = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 13F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(13F, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = WorkbenchUi.PrimaryColor,
                 ImageAlign = ContentAlignment.MiddleCenter,
@@ -241,7 +241,7 @@ namespace Office365CleanupTool
 
             _lblAccountName = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9.6F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(9.6F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -250,7 +250,7 @@ namespace Office365CleanupTool
 
             _lblAccountState = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 8.4F, FontStyle.Regular),
+                Font = WorkbenchUi.CreateUiFont(8.4F, FontStyle.Regular),
                 ForeColor = WorkbenchUi.TertiaryTextColor,
                 BackColor = Color.Transparent,
                 TextAlign = ContentAlignment.MiddleLeft,
@@ -266,12 +266,12 @@ namespace Office365CleanupTool
             };
 
             _btnSignIn = WorkbenchUi.CreatePrimaryButton("登录", Point.Empty, new Size(80, 38), 19);
-            _btnSignIn.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold);
+            _btnSignIn.Font = WorkbenchUi.CreateUiFont(9F, FontStyle.Bold);
             _btnSignIn.TabStop = false;
             _btnSignIn.Click += (_, _) => HandleSignIn();
 
             _btnSignOut = WorkbenchUi.CreateTextButton("注销", Point.Empty, new Size(54, 30), 15);
-            _btnSignOut.Font = new Font("Microsoft YaHei UI", 8.9F, FontStyle.Bold);
+            _btnSignOut.Font = WorkbenchUi.CreateUiFont(8.9F, FontStyle.Bold);
             _btnSignOut.TabStop = false;
             _btnSignOut.Click += (_, _) => HandleSignOut();
 
@@ -488,7 +488,7 @@ namespace Office365CleanupTool
             {
                 Text = text,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Microsoft YaHei UI", 10.6F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(10.6F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
                 FlatStyle = FlatStyle.Flat,
@@ -689,7 +689,11 @@ namespace Office365CleanupTool
                 ApplyLanguage();
                 ApplyAccessControl();
                 ShowPage("home");
-                dialog.Dispose();
+                if (!TryBeginDeferredProfileSync(dialog, verifiedAccount))
+                {
+                    dialog.Dispose();
+                }
+
                 return true;
             }
 
@@ -698,6 +702,94 @@ namespace Office365CleanupTool
             ApplyLanguage();
             ApplyAccessControl();
             return false;
+        }
+
+        private bool TryBeginDeferredProfileSync(MyAccountLoginVerificationForm dialog, string account)
+        {
+            if (dialog.VerifiedAvatarBytes is not null ||
+                string.IsNullOrWhiteSpace(account))
+            {
+                return false;
+            }
+
+            return dialog.BeginDeferredProfileSync(this, ApplyDeferredProfileSyncResult);
+        }
+
+        private void ApplyDeferredProfileSyncResult(
+            string account,
+            string displayName,
+            byte[]? avatarBytes,
+            bool hasVerifiedProfileDisplayName)
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            if (InvokeRequired)
+            {
+                this.BeginInvokeWhenReady(() => ApplyDeferredProfileSyncResult(
+                    account,
+                    displayName,
+                    avatarBytes,
+                    hasVerifiedProfileDisplayName));
+                return;
+            }
+
+            string currentAccount = (_appSettings.LastValidatedAccount ?? string.Empty).Trim();
+            if (!HasAccessGranted() ||
+                !string.Equals(currentAccount, account.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                WriteAvatarSaveTrace(account, displayName, avatarBytes?.Length ?? 0, string.Empty, "deferred-ignored-stale-account");
+                return;
+            }
+
+            bool updated = false;
+            string currentDisplayName = (_appSettings.LastValidatedDisplayName ?? string.Empty).Trim();
+            string candidateDisplayName = (displayName ?? string.Empty).Trim();
+            bool hasReliableDisplayName = hasVerifiedProfileDisplayName &&
+                                          !IsInvalidCachedDisplayName(candidateDisplayName) &&
+                                          !IsFallbackAccountDisplayName(candidateDisplayName, account);
+            if (hasReliableDisplayName &&
+                !string.Equals(candidateDisplayName, currentDisplayName, StringComparison.Ordinal))
+            {
+                _appSettings.LastValidatedDisplayName = candidateDisplayName;
+                currentDisplayName = candidateDisplayName;
+                updated = true;
+            }
+
+            string avatarPath = SaveValidatedAvatar(avatarBytes, account, currentDisplayName);
+            if (!string.IsNullOrWhiteSpace(avatarPath))
+            {
+                string previousAvatarPath = (_appSettings.LastValidatedAvatarPath ?? string.Empty).Trim();
+                if (!string.Equals(previousAvatarPath, avatarPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    _appSettings.LastValidatedAvatarPath = avatarPath;
+                    DeleteCachedAvatar(previousAvatarPath);
+                    updated = true;
+                }
+                else if (!IsUsableAvatarPath(previousAvatarPath))
+                {
+                    _appSettings.LastValidatedAvatarPath = avatarPath;
+                    updated = true;
+                }
+            }
+
+            string reason = !string.IsNullOrWhiteSpace(avatarPath)
+                ? "deferred-saved"
+                : updated
+                    ? "deferred-updated-profile"
+                    : "deferred-no-avatar";
+            WriteAvatarSaveTrace(account, currentDisplayName, avatarBytes?.Length ?? 0, _appSettings.LastValidatedAvatarPath ?? string.Empty, reason);
+
+            if (!updated)
+            {
+                return;
+            }
+
+            _appSettingsService.Save(_appSettings);
+            ResetAccountAvatarImage();
+            UpdateHeaderAccountPresentation();
         }
 
         private void ResetVerificationState()
@@ -877,7 +969,7 @@ namespace Office365CleanupTool
                     button.TextAlign = ContentAlignment.MiddleLeft;
                     button.Image = null;
                     button.Padding = new Padding(40, 0, 0, 0);
-                    button.Font = new Font("Microsoft YaHei UI", 10.6F, FontStyle.Bold);
+                    button.Font = WorkbenchUi.CreateUiFont(10.6F, FontStyle.Bold);
                     button.Text = _navButtonTexts[key];
                 }
             }
@@ -1300,7 +1392,7 @@ namespace Office365CleanupTool
                     }
                     else
                     {
-                        navButton.Font = new Font("Microsoft YaHei UI", 10.6F, FontStyle.Bold);
+                        navButton.Font = WorkbenchUi.CreateUiFont(10.6F, FontStyle.Bold);
                         navButton.Text = _navButtonTexts[navKey];
                         navButton.Image = null;
                     }
@@ -1320,7 +1412,7 @@ namespace Office365CleanupTool
                 }
                 else
                 {
-                    navButton.Font = new Font("Microsoft YaHei UI", 10.6F, FontStyle.Bold);
+                    navButton.Font = WorkbenchUi.CreateUiFont(10.6F, FontStyle.Bold);
                     navButton.Text = _navButtonTexts[navKey];
                     navButton.Image = null;
                 }
@@ -1333,7 +1425,7 @@ namespace Office365CleanupTool
         {
             if (TryGetNavPngIcon(key, isEnabled, out Image? image))
             {
-                button.Font = new Font("Microsoft YaHei UI", 1F, FontStyle.Regular);
+                button.Font = WorkbenchUi.CreateUiFont(1F, FontStyle.Regular);
                 button.Text = string.Empty;
                 button.Image = image;
                 button.ImageAlign = ContentAlignment.MiddleCenter;
@@ -1342,7 +1434,7 @@ namespace Office365CleanupTool
 
             button.Image = null;
             button.ImageAlign = ContentAlignment.MiddleCenter;
-            button.Font = new Font("Segoe MDL2 Assets", 13.5F, FontStyle.Regular);
+            button.Font = WorkbenchUi.CreateIconFont(13.5F, FontStyle.Regular);
             button.Text = GetNavIcon(key);
         }
 
@@ -1701,7 +1793,7 @@ namespace Office365CleanupTool
             var lblTitle = new Label
             {
                 Text = title,
-                Font = new Font("Microsoft YaHei UI", 16F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(16F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(32, 32, 32),
                 Location = new Point(24, 24),
                 Size = new Size(360, 32)
@@ -1710,7 +1802,7 @@ namespace Office365CleanupTool
             var lblDescription = new Label
             {
                 Text = description,
-                Font = new Font("Microsoft YaHei UI", 10F),
+                Font = WorkbenchUi.CreateUiFont(10F),
                 ForeColor = Color.FromArgb(96, 96, 96),
                 Location = new Point(24, 68),
                 Size = new Size(760, 52)

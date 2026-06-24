@@ -15,6 +15,15 @@ namespace Office365CleanupTool
 
     internal static class WorkbenchUi
     {
+        public static Font CreateUiFont(float pointSize, FontStyle style = FontStyle.Regular) =>
+            CreateFont("Microsoft YaHei UI", pointSize, style);
+
+        public static Font CreateIconFont(float pointSize, FontStyle style = FontStyle.Regular) =>
+            CreateFont("Segoe MDL2 Assets", pointSize, style);
+
+        public static Font CreateFont(string familyName, float pointSize, FontStyle style = FontStyle.Regular) =>
+            new(familyName, pointSize * 96F / 72F, style, GraphicsUnit.Pixel);
+
         private sealed class SmoothButton : Button
         {
             private bool _hovered;
@@ -151,7 +160,7 @@ namespace Office365CleanupTool
             return new GroupBox
             {
                 Text = title,
-                Font = new Font("Microsoft YaHei UI", 10.5F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(10.5F, FontStyle.Bold),
                 Location = location,
                 Size = size,
                 BackColor = Color.White
@@ -163,7 +172,7 @@ namespace Office365CleanupTool
             return new Label
             {
                 Text = text,
-                Font = new Font("Microsoft YaHei UI", 11F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(11F, FontStyle.Bold),
                 ForeColor = PrimaryTextColor,
                 BackColor = Color.Transparent,
                 Location = location,
@@ -177,7 +186,7 @@ namespace Office365CleanupTool
             return new Label
             {
                 Text = text,
-                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(9F, FontStyle.Bold),
                 ForeColor = TertiaryTextColor,
                 BackColor = Color.Transparent,
                 Location = location,
@@ -194,7 +203,7 @@ namespace Office365CleanupTool
                 Location = location,
                 Size = new Size(width, 18),
                 TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(7.5F, FontStyle.Bold),
                 UseMnemonic = false
             };
 
@@ -207,7 +216,7 @@ namespace Office365CleanupTool
             return new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = new Font("Microsoft YaHei UI", 9.75F),
+                Font = WorkbenchUi.CreateUiFont(9.75F),
                 ForeColor = PrimaryTextColor,
                 BackColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -221,7 +230,7 @@ namespace Office365CleanupTool
             return new CheckBox
             {
                 Text = text,
-                Font = new Font("Microsoft YaHei UI", 9.5F),
+                Font = WorkbenchUi.CreateUiFont(9.5F),
                 ForeColor = PrimaryTextColor,
                 BackColor = Color.Transparent,
                 Location = location,
@@ -236,7 +245,7 @@ namespace Office365CleanupTool
                 BackColor = MutedSurfaceColor,
                 ForeColor = PrimaryTextColor,
                 BorderStyle = BorderStyle.FixedSingle,
-                Font = new Font("Microsoft YaHei UI", 9.25F),
+                Font = WorkbenchUi.CreateUiFont(9.25F),
                 Location = location,
                 Multiline = true,
                 ReadOnly = true,
@@ -255,7 +264,7 @@ namespace Office365CleanupTool
                 Location = location,
                 Size = size,
                 ForeColor = Color.White,
-                Font = new Font("Microsoft YaHei UI", 9.5F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(9.5F, FontStyle.Bold),
                 UseMnemonic = false,
                 NormalBackColor = PrimaryColor,
                 HoverBackColor = PrimaryHoverColor,
@@ -275,7 +284,7 @@ namespace Office365CleanupTool
                 Location = location,
                 Size = size,
                 ForeColor = PrimaryTextColor,
-                Font = new Font("Microsoft YaHei UI", 9.25F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(9.25F, FontStyle.Bold),
                 UseMnemonic = false,
                 NormalBackColor = Color.White,
                 HoverBackColor = Color.FromArgb(248, 251, 255),
@@ -297,7 +306,7 @@ namespace Office365CleanupTool
                 BackColor = DangerColor,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Microsoft YaHei UI", 9.75F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(9.75F, FontStyle.Bold),
                 FlatAppearance =
                 {
                     BorderSize = 0,
@@ -321,7 +330,7 @@ namespace Office365CleanupTool
                 Location = location,
                 Size = size,
                 ForeColor = PrimaryColor,
-                Font = new Font("Microsoft YaHei UI", 9.25F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(9.25F, FontStyle.Bold),
                 UseMnemonic = false,
                 NormalBackColor = Color.Transparent,
                 HoverBackColor = Color.FromArgb(239, 244, 252),
@@ -338,7 +347,7 @@ namespace Office365CleanupTool
             textBox.BorderStyle = BorderStyle.FixedSingle;
             textBox.BackColor = Color.White;
             textBox.ForeColor = PrimaryTextColor;
-            textBox.Font = new Font("Microsoft YaHei UI", 9.5F);
+            textBox.Font = WorkbenchUi.CreateUiFont(9.5F);
         }
 
         public static void StyleCheckedListBox(CheckedListBox listBox)
@@ -346,14 +355,14 @@ namespace Office365CleanupTool
             listBox.BorderStyle = BorderStyle.None;
             listBox.BackColor = Color.White;
             listBox.ForeColor = PrimaryTextColor;
-            listBox.Font = new Font("Microsoft YaHei UI", 9.5F);
+            listBox.Font = WorkbenchUi.CreateUiFont(9.5F);
             listBox.ItemHeight = 24;
             listBox.IntegralHeight = false;
         }
 
         public static void ApplyStatusStyle(Label label, WorkbenchTone tone)
         {
-            label.Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Bold);
+            label.Font = WorkbenchUi.CreateUiFont(7.5F, FontStyle.Bold);
             label.Padding = new Padding(6, 1, 6, 1);
             label.TextAlign = ContentAlignment.MiddleCenter;
             label.BorderStyle = BorderStyle.None;
@@ -399,7 +408,7 @@ namespace Office365CleanupTool
             var lblTitle = new Label
             {
                 Text = title,
-                Font = new Font("Microsoft YaHei UI", 11F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(11F, FontStyle.Bold),
                 ForeColor = PrimaryTextColor,
                 Location = new Point(18, 16),
                 Size = new Size(240, 24),
@@ -410,7 +419,7 @@ namespace Office365CleanupTool
             var lblDescription = new Label
             {
                 Text = description,
-                Font = new Font("Microsoft YaHei UI", 9.25F),
+                Font = WorkbenchUi.CreateUiFont(9.25F),
                 ForeColor = SecondaryTextColor,
                 Location = new Point(18, 46),
                 Size = new Size(272, 54),

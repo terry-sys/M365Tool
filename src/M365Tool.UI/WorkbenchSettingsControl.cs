@@ -40,6 +40,7 @@ namespace Office365CleanupTool
         private readonly Label _lblPrivacyTitle;
         private readonly Label _lblPrivacySummary;
         private readonly Label _lblPrivacyContent;
+        private readonly Button _btnOpenPrivacyPolicy;
 
         public event EventHandler<string>? LanguageModeChanged;
 
@@ -79,14 +80,14 @@ namespace Office365CleanupTool
 
             _lblTitle = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(17F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent
             };
 
             _lblDescription = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 10.25F),
+                Font = WorkbenchUi.CreateUiFont(10.25F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent
             };
@@ -96,7 +97,7 @@ namespace Office365CleanupTool
             _lblLanguageMode = WorkbenchUi.CreateFieldLabel("显示语言", new Point(20, 68), 180);
             _lblLanguageHint = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9F),
+                Font = WorkbenchUi.CreateUiFont(9F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(20, 44),
@@ -105,7 +106,7 @@ namespace Office365CleanupTool
             _cboLanguageMode = WorkbenchUi.CreateComboBox(new Point(20, 96), new Size(280, 32));
             _lblCurrentLanguage = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9.5F),
+                Font = WorkbenchUi.CreateUiFont(9.5F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(20, 138),
@@ -113,7 +114,7 @@ namespace Office365CleanupTool
             };
             _lblValidationState = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(9F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 Location = new Point(20, 170),
                 Size = new Size(188, 28)
@@ -137,7 +138,7 @@ namespace Office365CleanupTool
             _lblSupportTag.Visible = false;
             _lblSupportSummary = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 10F),
+                Font = WorkbenchUi.CreateUiFont(10F),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(20, 48),
@@ -147,7 +148,7 @@ namespace Office365CleanupTool
             _lblSupportActionsCaption = WorkbenchUi.CreateFieldLabel("可通过公众号完成", new Point(16, 12), 220);
             _lblSupportActions = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9.5F),
+                Font = WorkbenchUi.CreateUiFont(9.5F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(16, 40),
@@ -155,7 +156,7 @@ namespace Office365CleanupTool
             };
             _lblSupportHint = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9F),
+                Font = WorkbenchUi.CreateUiFont(9F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(20, 190),
@@ -187,7 +188,7 @@ namespace Office365CleanupTool
             _lblPrivacyTitle = WorkbenchUi.CreateSectionTitle("隐私政策", new Point(20, 16), 220);
             _lblPrivacySummary = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 10F),
+                Font = WorkbenchUi.CreateUiFont(10F),
                 ForeColor = WorkbenchUi.PrimaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(20, 48),
@@ -195,17 +196,20 @@ namespace Office365CleanupTool
             };
             _lblPrivacyContent = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9.5F),
+                Font = WorkbenchUi.CreateUiFont(9.5F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = new Point(20, 96),
                 Size = new Size(840, 168)
             };
+            _btnOpenPrivacyPolicy = WorkbenchUi.CreateSecondaryButton("查看完整隐私政策", new Point(20, 96), new Size(168, 38));
+            _btnOpenPrivacyPolicy.Click += btnOpenPrivacyPolicy_Click;
             _privacyCard.Controls.AddRange(new Control[]
             {
                 _lblPrivacyTitle,
                 _lblPrivacySummary,
-                _lblPrivacyContent
+                _lblPrivacyContent,
+                _btnOpenPrivacyPolicy
             });
 
             _contentPanel.Controls.AddRange(new Control[] { _lblTitle, _lblDescription, _settingsCard, _supportCard, _privacyCard });
@@ -279,6 +283,7 @@ namespace Office365CleanupTool
             _lblPrivacySummary.Text = T(
                 "本工具用于 21Vianet Microsoft 365 运维场景，登录验证和本地日志仅用于提供工具功能、排障与支持。",
                 "This tool is built for 21Vianet Microsoft 365 operations. Sign-in verification and local logs are used only to provide tool features, troubleshooting, and support.");
+            _btnOpenPrivacyPolicy.Text = T("查看完整隐私政策", "View Full Privacy Policy");
             _lblPrivacyContent.Text = T(
                 "我们可能处理的信息：\r\n• 21V 账户登录验证状态、显示名、账号标识和头像缓存，用于显示登录状态和限制未登录功能。\r\n• 工具配置、安装/卸载/修复/诊断执行日志和返回码，用于本机排障、结果查看和支持工单。\r\n• 二维码反馈或技术支持中由你主动提交的信息。\r\n\r\n数据使用原则：\r\n• 本工具不出售个人信息，不进行画像或自动化决策。\r\n• 头像、设置和日志优先保存在本机用户目录；除你主动提交反馈或工单外，工具不会主动上传日志内容。\r\n• 你可以通过注销、清理缓存或删除本机日志目录来移除本地保存的账号状态和执行记录。",
                 "Information this tool may process:\r\n• 21V account verification state, display name, account identifier, and avatar cache for sign-in status and feature gating.\r\n• Tool settings, install/uninstall/repair/diagnostic logs, and exit codes for local troubleshooting, result review, and support tickets.\r\n• Information you voluntarily submit through QR-code feedback or technical support.\r\n\r\nData use principles:\r\n• This tool does not sell personal information, build profiles, or make automated decisions.\r\n• Avatars, settings, and logs are stored locally in the user profile by default. The tool does not actively upload logs unless you submit feedback or a support ticket.\r\n• You can sign out, clear cache, or delete the local log folder to remove locally stored account state and execution records.");
@@ -344,7 +349,9 @@ namespace Office365CleanupTool
             _privacyCard.Location = new Point(contentLeft, _supportCard.Bottom + 18);
             _privacyCard.Size = new Size(availableWidth, privacyHeight);
             _lblPrivacySummary.Size = new Size(availableWidth - 40, 44);
-            _lblPrivacyContent.Size = new Size(availableWidth - 40, privacyHeight - 116);
+            _btnOpenPrivacyPolicy.Location = new Point(20, 102);
+            _lblPrivacyContent.Location = new Point(20, 156);
+            _lblPrivacyContent.Size = new Size(availableWidth - 40, privacyHeight - 176);
 
             _contentPanel.Width = Math.Max(10, viewportWidth - 1);
             _contentPanel.Height = _privacyCard.Bottom + 24;
@@ -422,6 +429,37 @@ namespace Office365CleanupTool
                 FileName = qrPath,
                 UseShellExecute = true
             });
+        }
+
+        private void btnOpenPrivacyPolicy_Click(object? sender, EventArgs e)
+        {
+            string html = ReadEmbeddedPrivacyPolicyHtml();
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                MessageBox.Show(
+                    T("未找到隐私政策 HTML 资源。", "Privacy policy HTML resource was not found."),
+                    T("提示", "Notice"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            using var dialog = new PrivacyPolicyForm(_language, html);
+            dialog.ShowDialog(this);
+        }
+
+        private static string ReadEmbeddedPrivacyPolicyHtml()
+        {
+            using Stream? stream = typeof(WorkbenchSettingsControl)
+                .Assembly
+                .GetManifestResourceStream("M365Tool.Assets.privacy.html");
+            if (stream is null)
+            {
+                return string.Empty;
+            }
+
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
         }
 
         private static Stream? OpenSupportQrStream()

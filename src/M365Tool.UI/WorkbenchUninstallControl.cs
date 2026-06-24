@@ -52,15 +52,15 @@ namespace Office365CleanupTool
             BackColor = WorkbenchUi.CanvasColor;
             AutoScroll = true;
 
-            _lblTitle = new Label { Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold), ForeColor = WorkbenchUi.PrimaryTextColor };
-            _lblDescriptionTitle = new Label { Font = new Font("Microsoft YaHei UI", 10.25F), ForeColor = WorkbenchUi.SecondaryTextColor };
+            _lblTitle = new Label { Font = WorkbenchUi.CreateUiFont(17F, FontStyle.Bold), ForeColor = WorkbenchUi.PrimaryTextColor };
+            _lblDescriptionTitle = new Label { Font = WorkbenchUi.CreateUiFont(10.25F), ForeColor = WorkbenchUi.SecondaryTextColor };
 
             _targetCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
             _lblTargetTitle = WorkbenchUi.CreateSectionTitle(string.Empty, new Point(20, 14));
             _cboTarget = WorkbenchUi.CreateComboBox(Point.Empty, new Size(420, 32));
             _lblDescription = new Label
             {
-                Font = new Font("Microsoft YaHei UI", 9.5F),
+                Font = WorkbenchUi.CreateUiFont(9.5F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent,
                 UseMnemonic = false

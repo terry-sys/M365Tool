@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>隐私政策 - 21Vianet Office工具箱</title>
+  <link rel="icon" href="data:," />
+  <meta name="description" content="21Vianet Office工具箱隐私政策，说明本工具在账户验证、本地配置、WebView2 登录会话、日志和诊断信息方面的数据处理方式。" />
+  <style>
+    :root {
+      --primary: #0067b8;
+      --primary-dark: #004f8f;
+      --primary-soft: #eaf4ff;
+      --text: #1f2937;
+      --muted: #5f6b7a;
+      --border: #e5e7eb;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.78;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .topbar {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: 0.2px;
+    }
+
+
+    .hero {
+      background:
+        radial-gradient(circle at 20% 0%, rgba(71, 183, 255, 0.28), transparent 34%),
+        linear-gradient(135deg, #f7fbff 0%, #eef6ff 45%, #ffffff 100%);
+      border-bottom: 1px solid #e6eef8;
+    }
+
+    .hero-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 58px 24px 50px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary-dark);
+      background: rgba(0, 103, 184, 0.08);
+      border: 1px solid rgba(0, 103, 184, 0.12);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1.16;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      max-width: 860px;
+      margin: 0;
+      color: #4b5563;
+      font-size: 17px;
+    }
+
+    .updated {
+      margin-top: 22px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    .layout {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 70px;
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .toc {
+      position: sticky;
+      top: 84px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .toc h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: #111827;
+    }
+
+    .toc ol {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 6px 8px;
+      border-radius: 8px;
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .toc a:hover {
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      text-decoration: none;
+    }
+
+    .content {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 34px 40px 42px;
+    }
+
+
+    section {
+      padding: 22px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    section:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      line-height: 1.35;
+      color: #0f172a;
+    }
+
+    h3 {
+      margin: 22px 0 10px;
+      font-size: 18px;
+      color: #111827;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: #374151;
+    }
+
+    ul {
+      margin: 8px 0 16px 0;
+      padding-left: 22px;
+      color: #374151;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .highlight-card {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin: 18px 0 8px;
+    }
+
+    .highlight-card .item {
+      border: 1px solid #dbeafe;
+      background: #fbfdff;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .highlight-card strong {
+      display: block;
+      color: var(--primary-dark);
+      margin-bottom: 6px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      background: #ffffff;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 22px 24px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 2px 5px;
+      font-size: 0.92em;
+      color: #374151;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+      }
+
+      .content {
+        padding: 26px 22px 32px;
+      }
+
+      .highlight-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .topbar-inner {
+        padding: 14px 18px;
+      }
+
+      .hero-inner,
+      .layout {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand" aria-label="21Vianet Office工具箱">
+        <span>21Vianet Office工具箱</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="eyebrow">Privacy Policy</div>
+        <h1>隐私政策</h1>
+        <p class="subtitle">本政策说明 21Vianet Office工具箱在账户验证、本地配置、WebView2 登录会话、日志和诊断信息方面的数据处理方式。我们坚持本地处理、最小必要和用户可控原则。</p>
+        <div class="updated">最后更新日期：2026 年 5 月 29 日</div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <aside class="toc" aria-label="目录">
+        <h2>目录</h2>
+        <ol>
+          <li><a href="#overview">概述</a></li>
+          <li><a href="#principles">一般原则</a></li>
+          <li><a href="#data-we-process">我们处理哪些信息</a></li>
+          <li><a href="#login-webview2">21V 账户验证与 WebView2 登录说明</a></li>
+          <li><a href="#local-storage">本地配置与缓存</a></li>
+          <li><a href="#logs">日志与诊断信息</a></li>
+          <li><a href="#retention">数据保存位置与期限</a></li>
+          <li><a href="#sharing">数据共享</a></li>
+          <li><a href="#security">数据安全</a></li>
+          <li><a href="#rights">您的权利</a></li>
+          <li><a href="#not-doing">我们不做的事</a></li>
+        </ol>
+      </aside>
+
+      <article class="content">
+        <section id="overview">
+          <h2>概述</h2>
+          <p>感谢您选择使用 21Vianet Office工具箱（以下简称“本工具”）。本工具是一款面向 21Vianet / 21V Microsoft 365 运维场景的 Windows 桌面工具，用于辅助完成 Microsoft 365 Apps 安装、Office 卸载、更新频道切换、激活痕迹清理、Teams 常见问题处理、Outlook 诊断以及相关本地维护操作。</p>
+          <p>我们深知账户信息、登录状态和本地诊断数据对您至关重要。本隐私政策旨在说明本工具在使用过程中会处理哪些信息、出于何种目的处理这些信息、信息保存在哪里，以及我们不会收集或保存哪些敏感信息。</p>
+          <p>请您在使用本工具前仔细阅读本隐私政策。如您继续使用本工具，即表示您已了解并接受本政策中说明的数据处理方式。</p>
+        </section>
+
+        <section id="principles">
+          <h2>一般原则</h2>
+          <h3>什么是个人信息？</h3>
+          <p>个人信息是指以电子或者其他方式记录的，与已识别或者可识别的自然人有关的各种信息。本工具可能涉及的个人信息包括账号标识、显示名称、头像缓存信息、验证时间、本地配置状态以及您主动导出的诊断日志中可能包含的设备或软件运行信息。</p>
+          <h3>什么是处理？</h3>
+          <p>“处理”是指对个人信息进行的收集、存储、使用、加工、传输、提供、删除等操作。本工具对相关信息的处理主要发生在用户本机，用于完成 21V 账户验证状态展示、本地功能访问判断、界面语言偏好保存以及工具运行诊断。</p>
+          <h3>谁负责本工具？</h3>
+          <p>本工具由项目维护者维护并发布。</p>
+        </section>
+
+        <section id="data-we-process">
+          <h2>我们处理哪些信息</h2>
+          <p>本工具遵循“本地处理、最小必要、用户可控”的原则，仅在实现功能所必需的范围内处理信息。</p>
+          <div class="highlight-card">
+            <div class="item">
+              <strong>账户验证状态信息</strong>
+              <p>用于展示当前验证状态、账号显示信息和本地功能访问判断。</p>
+            </div>
+            <div class="item">
+              <strong>本地工具配置</strong>
+              <p>用于保存界面语言、页面状态、功能状态等用户偏好。</p>
+            </div>
+            <div class="item">
+              <strong>头像缓存信息</strong>
+              <p>用于在工具界面中展示用户头像或账号信息。</p>
+            </div>
+            <div class="item">
+              <strong>诊断与日志信息</strong>
+              <p>仅在用户主动执行相关功能时用于本地排查和结果确认。</p>
+            </div>
+          </div>
+          <h3>账户验证状态信息</h3>
+          <p>为确认用户是否已完成 21V 账户验证，并用于在界面中展示当前登录状态，本工具可能会在本机用户配置目录中保存以下最小化验证状态信息：</p>
+          <ul>
+            <li>界面语言设置；</li>
+            <li>是否已完成 21V 验证；</li>
+            <li>上次验证账号；</li>
+            <li>用户显示名称；</li>
+            <li>头像缓存信息；</li>
+            <li>验证时间。</li>
+          </ul>
+          <p>上述信息仅用于本工具本地界面展示和本地功能访问判断。本工具不会在本地配置文件中保存用户密码、access token、refresh token 或 Microsoft 登录 cookie。</p>
+        </section>
+
+        <section id="login-webview2">
+          <h2>21V 账户验证与 WebView2 登录说明</h2>
+          <p>在登录过程中，用户输入的账号、密码、多因素认证信息或其他登录凭据均由 Microsoft 21V 官方登录页面处理。本工具不会读取、拦截、记录或保存用户密码。</p>
+          <h3>WebView2 会话数据</h3>
+          <p>登录过程中，WebView2 运行时会在当前 Windows 用户的临时目录中创建独立的浏览器用户数据目录，用于承载 Microsoft 登录页面所需的 cookie、缓存和站点存储数据。</p>
+          <p>为降低会话残留风险，本工具会在每次登录前清理 WebView2 会话数据，并在登录窗口关闭后尝试删除该临时目录。</p>
+          <p>由于 Windows 文件占用、WebView2 运行时状态或系统权限等原因，临时目录删除可能存在延迟或失败。如发生此类情况，相关数据仍位于当前 Windows 用户本机环境中，不会由本工具主动上传。</p>
+          <h3>登录完成后的本地状态保存</h3>
+          <p>登录完成后，本工具仅保存最小化的验证状态信息，用于界面展示和本地功能访问判断。保存内容包括界面语言、是否已完成 21V 验证、上次验证账号、显示名称、头像缓存信息以及验证时间。</p>
+          <p>该配置文件不包含用户密码、access token、refresh token 或 Microsoft 登录 cookie。</p>
+        </section>
+
+        <section id="local-storage">
+          <h2>本地配置与缓存</h2>
+          <p>本工具可能会在当前 Windows 用户的本地配置目录或临时目录中创建必要文件，用于保存工具配置、头像缓存、验证状态或临时运行数据。</p>
+          <p>这些信息的用途包括：</p>
+          <ul>
+            <li>显示当前验证账号和验证状态；</li>
+            <li>展示用户头像或显示名称；</li>
+            <li>判断是否允许访问受限功能；</li>
+            <li>保存界面语言等用户偏好；</li>
+            <li>支持本地诊断、安装、卸载、清理或修复流程。</li>
+          </ul>
+          <p>本工具不会将上述本地配置和缓存信息主动上传到远程服务器。</p>
+        </section>
+
+        <section id="logs">
+          <h2>日志与诊断信息</h2>
+          <p>本工具的部分功能可能会执行 Office、Teams、Outlook 或系统环境相关的本地检查、清理、修复或诊断操作。在用户主动执行相关功能时，本工具可能会在本机生成运行日志或诊断结果，用于帮助用户判断执行结果或进行问题排查。</p>
+          <p>除非用户主动导出、复制、上传或发送相关日志，本工具不会自动将日志或诊断结果上传到远程服务器。</p>
+          <p>请注意，诊断日志可能包含设备环境、软件版本、路径、错误信息、执行时间等内容。在向他人提供日志前，建议您自行确认日志内容，避免包含不希望共享的信息。</p>
+        </section>
+
+        <section id="retention">
+          <h2>数据保存位置与期限</h2>
+          <p>本工具处理的信息主要保存在当前 Windows 用户的本机环境中，包括本地用户配置目录、临时目录或用户主动选择的日志导出位置。</p>
+          <h3>本地配置文件</h3>
+          <p>本地配置文件会在用户继续使用本工具期间保留，用于保持工具状态和用户体验。用户可以通过清理工具配置、删除应用数据目录或卸载工具的方式移除相关本地数据。</p>
+          <h3>WebView2 临时目录</h3>
+          <p>WebView2 登录会话使用的临时目录会在登录窗口关闭后由本工具尝试删除。若因系统占用或权限原因未能立即删除，用户可以在关闭本工具后手动清理对应临时目录。</p>
+          <h3>日志文件</h3>
+          <p>日志文件通常仅在用户主动执行诊断、导出或保存操作时产生。日志保存位置由工具默认路径或用户选择的位置决定。用户可以自行删除这些日志文件。</p>
+        </section>
+
+        <section id="sharing">
+          <h2>数据共享</h2>
+          <p>本工具不会主动向任何第三方服务器上传用户密码、登录凭据、本地配置文件、验证状态文件、诊断日志或其他个人信息。</p>
+          <p>以下情况除外：</p>
+          <ul>
+            <li>用户主动将日志、截图、配置文件或诊断结果发送给支持人员、管理员或第三方；</li>
+            <li>用户主动通过邮件、即时通讯工具或其他渠道提交问题信息；</li>
+            <li>Microsoft 21V 官方登录页面在认证过程中根据其自身机制处理登录请求、认证状态、cookie 或其他登录相关信息。</li>
+          </ul>
+          <p>对于 Microsoft 21V 官方登录页面处理的数据，本工具无法控制其处理方式。相关数据处理应以 Microsoft 及 21Vianet 对应服务的隐私政策、服务条款和组织管理策略为准。</p>
+        </section>
+
+        <section id="security">
+          <h2>数据安全</h2>
+          <p>本工具采取最小化保存和本地处理的方式，减少不必要的数据收集和传输。对于登录验证相关流程，本工具通过 Microsoft 21V 官方登录页面完成认证，不自行处理用户密码。</p>
+          <p>本工具会在登录前清理 WebView2 会话数据，并在登录窗口关闭后尝试删除登录过程中创建的临时浏览器用户数据目录，以降低 cookie、缓存和站点存储残留风险。</p>
+          <p>但请注意，任何本地软件运行环境都可能受到操作系统权限、恶意软件、终端安全策略、文件占用、用户误操作或第三方工具影响。建议用户仅从可信来源下载本工具，并在受控测试环境中验证后再用于生产设备。</p>
+        </section>
+
+        <section id="rights">
+          <h2>您的权利</h2>
+          <p>您可以通过以下方式管理本工具在本机保存的信息：</p>
+          <ul>
+            <li>删除本工具本地配置目录中的配置文件；</li>
+            <li>删除头像缓存或临时文件；</li>
+            <li>删除用户主动导出的日志文件；</li>
+            <li>重新执行登录验证，以更新本地验证状态；</li>
+            <li>停止使用或卸载本工具。</li>
+          </ul>
+          <p>如果您认为本工具保存的信息不准确，或者希望删除本地保存的验证状态和配置数据，可以通过工具内提供的退出登录、清理配置功能，或手动删除对应本地文件实现。</p>
+        </section>
+
+        <section id="not-doing">
+          <h2>我们不做的事</h2>
+          <p>本工具明确不会执行以下行为：</p>
+          <ul>
+            <li>不收集、保存或上传用户密码；</li>
+            <li>不在本地配置文件中保存 access token；</li>
+            <li>不在本地配置文件中保存 refresh token；</li>
+            <li>不在本地配置文件中保存 Microsoft 登录 cookie；</li>
+            <li>不主动上传用户本地配置文件；</li>
+            <li>不主动上传用户诊断日志；</li>
+            <li>不出售用户个人信息；</li>
+            <li>不使用用户信息进行广告投放；</li>
+            <li>不基于用户信息进行自动化决策或画像分析；</li>
+            <li>不主动向无关第三方提供用户信息。</li>
+          </ul>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>© 2026 21Vianet Office工具箱</span>
+      <span>本页面用于说明工具的数据处理与隐私保护方式。</span>
+    </div>
+  </footer>
+</body>
+</html>

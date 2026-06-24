@@ -268,7 +268,7 @@ namespace Office365CleanupTool
             {
                 AutoSize = false,
                 BackColor = Color.Transparent,
-                Font = new Font("Microsoft YaHei UI", size, style),
+                Font = WorkbenchUi.CreateUiFont(size, style),
                 ForeColor = foreColor,
                 UseMnemonic = false
             };
@@ -389,14 +389,16 @@ namespace Office365CleanupTool
 
         private static void ApplyLabelFont(Label label, float size, FontStyle style)
         {
-            if (Math.Abs(label.Font.Size - size) < 0.01F && label.Font.Style == style)
+            string fontKey = string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"{size:0.###}|{(int)style}");
+            if (string.Equals(label.Tag as string, fontKey, StringComparison.Ordinal))
             {
                 return;
             }
 
-            Font oldFont = label.Font;
-            label.Font = new Font("Microsoft YaHei UI", size, style);
-            oldFont.Dispose();
+            label.Font = WorkbenchUi.CreateUiFont(size, style);
+            label.Tag = fontKey;
         }
 
         private static Panel CreateWorkspacePanel()

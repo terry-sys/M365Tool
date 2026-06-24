@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\privacy.html" LogicalName="M365Tool.Assets.privacy.html" />
     <EmbeddedResource Include="Assets\support-wechat-qr.png" LogicalName="M365Tool.Assets.support-wechat-qr.png" />
     <EmbeddedResource Include="Assets\Icons\Home\install_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.install_exact_preview_tile_128.png" />
     <EmbeddedResource Include="Assets\Icons\Home\uninstall_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.uninstall_exact_preview_tile_128.png" />

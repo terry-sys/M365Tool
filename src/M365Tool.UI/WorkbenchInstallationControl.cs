@@ -168,14 +168,14 @@ namespace Office365CleanupTool
             _lblTitle = new Label
             {
                 Text = "安装 M365 应用",
-                Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold),
+                Font = WorkbenchUi.CreateUiFont(17F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryTextColor
             };
 
             _lblDescription = new Label
             {
                 Text = "选择安装产品、位数和频道，然后执行在线安装与环境检查",
-                Font = new Font("Microsoft YaHei UI", 10F),
+                Font = WorkbenchUi.CreateUiFont(10F),
                 ForeColor = WorkbenchUi.SecondaryTextColor
             };
 
@@ -184,7 +184,7 @@ namespace Office365CleanupTool
             _lblBasicHint = new Label
             {
                 AutoSize = false,
-                Font = new Font("Microsoft YaHei UI", 9.5F),
+                Font = WorkbenchUi.CreateUiFont(9.5F),
                 ForeColor = WorkbenchUi.SecondaryTextColor,
                 BackColor = Color.Transparent
             };
@@ -194,7 +194,7 @@ namespace Office365CleanupTool
             {
                 AutoSize = false,
                 Text = "\uE8FD",
-                Font = new Font("Segoe MDL2 Assets", 13F),
+                Font = WorkbenchUi.CreateIconFont(13F),
                 ForeColor = WorkbenchUi.PrimaryColor,
                 BackColor = Color.FromArgb(235, 243, 255),
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -204,7 +204,7 @@ namespace Office365CleanupTool
             var lblBasicFlowText = new Label
             {
                 AutoSize = false,
-                Font = new Font("Microsoft YaHei UI", 9.25F),
+                Font = WorkbenchUi.CreateUiFont(9.25F),
                 ForeColor = WorkbenchUi.SecondaryTextColor
             };
             var lblBasicFlowTag = WorkbenchUi.CreateTagLabel("流程", Point.Empty, 64, WorkbenchTone.Info);
@@ -229,15 +229,15 @@ namespace Office365CleanupTool
 
             _excludeAppsCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
             _lblExcludeAppsTitle = WorkbenchUi.CreateSectionTitle("排除应用", new Point(18, 14), 180);
-            _clbExcludeApps = new CheckedListBox { CheckOnClick = true, Font = new Font("Microsoft YaHei UI", 10F), IntegralHeight = false };
+            _clbExcludeApps = new CheckedListBox { CheckOnClick = true, Font = WorkbenchUi.CreateUiFont(10F), IntegralHeight = false };
             _excludeAppsHost = WorkbenchUi.CreateInsetPanel(Point.Empty, Size.Empty);
             _excludeAppsCard.Controls.AddRange(new Control[] { _lblExcludeAppsTitle, _excludeAppsHost });
             _excludeAppsHost.Controls.Add(_clbExcludeApps);
 
             _languagesCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
             _lblLanguagesTitle = WorkbenchUi.CreateSectionTitle("语言", new Point(18, 14), 120);
-            _txtLanguageSearch = new TextBox { Font = new Font("Microsoft YaHei UI", 9.5F), PlaceholderText = "搜索语言" };
-            _clbLanguages = new CheckedListBox { CheckOnClick = true, Font = new Font("Microsoft YaHei UI", 10F), IntegralHeight = false };
+            _txtLanguageSearch = new TextBox { Font = WorkbenchUi.CreateUiFont(9.5F), PlaceholderText = "搜索语言" };
+            _clbLanguages = new CheckedListBox { CheckOnClick = true, Font = WorkbenchUi.CreateUiFont(10F), IntegralHeight = false };
             _languagesHost = WorkbenchUi.CreateInsetPanel(Point.Empty, Size.Empty);
             _languagesCard.Controls.AddRange(new Control[] { _lblLanguagesTitle, _txtLanguageSearch, _languagesHost });
             _languagesHost.Controls.Add(_clbLanguages);
@@ -247,7 +247,7 @@ namespace Office365CleanupTool
             _lblPrecheckStatus = new Label
             {
                 Text = "等待检查",
-                Font = new Font("Microsoft YaHei UI", 10F),
+                Font = WorkbenchUi.CreateUiFont(10F),
                 ForeColor = _normalColor,
                 AutoSize = false,
                 Visible = false
@@ -265,7 +265,7 @@ namespace Office365CleanupTool
             _lblResult = new Label
             {
                 Text = "准备就绪",
-                Font = new Font("Microsoft YaHei UI", 10F),
+                Font = WorkbenchUi.CreateUiFont(10F),
                 ForeColor = _normalColor,
                 AutoSize = false,
                 Visible = false

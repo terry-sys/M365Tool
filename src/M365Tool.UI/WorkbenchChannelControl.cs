@@ -59,8 +59,8 @@ namespace Office365CleanupTool
             BackColor = WorkbenchUi.CanvasColor;
             AutoScroll = true;
 
-            _lblTitle = new Label { Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold), ForeColor = WorkbenchUi.PrimaryTextColor, BackColor = Color.Transparent };
-            _lblDescription = new Label { Font = new Font("Microsoft YaHei UI", 10.25F), ForeColor = WorkbenchUi.SecondaryTextColor, BackColor = Color.Transparent };
+            _lblTitle = new Label { Font = WorkbenchUi.CreateUiFont(17F, FontStyle.Bold), ForeColor = WorkbenchUi.PrimaryTextColor, BackColor = Color.Transparent };
+            _lblDescription = new Label { Font = WorkbenchUi.CreateUiFont(10.25F), ForeColor = WorkbenchUi.SecondaryTextColor, BackColor = Color.Transparent };
 
             _settingsCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
             _lblSettingsTitle = WorkbenchUi.CreateSectionTitle(string.Empty, new Point(20, 14));
@@ -68,7 +68,7 @@ namespace Office365CleanupTool
             _cboChannel = WorkbenchUi.CreateComboBox(Point.Empty, new Size(320, 32));
             _lblVersionTitle = WorkbenchUi.CreateFieldLabel(string.Empty, new Point(372, 48));
             _cboVersion = WorkbenchUi.CreateComboBox(Point.Empty, new Size(420, 32));
-            _lblLoading = new Label { Font = new Font("Microsoft YaHei UI", 9F), ForeColor = Color.FromArgb(100, 100, 100), BackColor = Color.Transparent, Visible = false };
+            _lblLoading = new Label { Font = WorkbenchUi.CreateUiFont(9F), ForeColor = Color.FromArgb(100, 100, 100), BackColor = Color.Transparent, Visible = false };
             _chkDisableUpdates = WorkbenchUi.CreateCheckBox(string.Empty, Point.Empty, 220);
             _settingsCard.Controls.AddRange(new Control[] { _lblSettingsTitle, _lblChannelTitle, _cboChannel, _lblVersionTitle, _cboVersion, _lblLoading, _chkDisableUpdates });
 

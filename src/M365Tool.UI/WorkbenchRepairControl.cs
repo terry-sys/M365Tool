@@ -60,8 +60,8 @@ namespace Office365CleanupTool
                 Dock = DockStyle.Top
             };
 
-            _lblTitle = new Label { Font = new Font("Microsoft YaHei UI", 17F, FontStyle.Bold), ForeColor = WorkbenchUi.PrimaryTextColor, BackColor = Color.Transparent };
-            _lblDescription = new Label { Font = new Font("Microsoft YaHei UI", 10.25F), ForeColor = WorkbenchUi.SecondaryTextColor, BackColor = Color.Transparent };
+            _lblTitle = new Label { Font = WorkbenchUi.CreateUiFont(17F, FontStyle.Bold), ForeColor = WorkbenchUi.PrimaryTextColor, BackColor = Color.Transparent };
+            _lblDescription = new Label { Font = WorkbenchUi.CreateUiFont(10.25F), ForeColor = WorkbenchUi.SecondaryTextColor, BackColor = Color.Transparent };
 
             _cardsHost = new Panel { BackColor = Color.Transparent };
             _cleanupCard = WorkbenchUi.CreateActionCard(string.Empty, string.Empty, Point.Empty, out _btnCleanup, true, string.Empty);
