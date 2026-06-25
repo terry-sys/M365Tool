@@ -202,7 +202,8 @@ namespace Office365CleanupTool
                 Location = new Point(20, 96),
                 Size = new Size(840, 168)
             };
-            _btnOpenPrivacyPolicy = WorkbenchUi.CreateSecondaryButton("查看完整隐私政策", new Point(20, 96), new Size(168, 38));
+            _btnOpenPrivacyPolicy = WorkbenchUi.CreateSecondaryButton("查看完整隐私政策", new Point(20, 96), new Size(220, 44));
+            _btnOpenPrivacyPolicy.Font = WorkbenchUi.CreateUiFont(9.5F, FontStyle.Bold);
             _btnOpenPrivacyPolicy.Click += btnOpenPrivacyPolicy_Click;
             _privacyCard.Controls.AddRange(new Control[]
             {
@@ -297,10 +298,14 @@ namespace Office365CleanupTool
                 return;
             }
 
-            const int margin = 24;
             int viewportWidth = _scrollHost.ClientSize.Width;
-            int availableWidth = Math.Max(560, Math.Min(1160, viewportWidth - margin * 2));
-            int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
+            int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
+            int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
+                viewportWidth,
+                560,
+                WorkbenchUi.ReadingContentMaxWidth,
+                margin);
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
             _settingsCard.Location = new Point(contentLeft, 18);
             _settingsCard.Size = new Size(availableWidth, 246);
@@ -345,16 +350,25 @@ namespace Office365CleanupTool
                 _btnOpenQr.Location = new Point((_qrPanel.Width - _btnOpenQr.Width) / 2, _picSupportQr.Bottom + 12);
             }
 
-            int privacyHeight = stackSupport ? 382 : 330;
+            int privacyHeight = stackSupport ? 420 : 360;
             _privacyCard.Location = new Point(contentLeft, _supportCard.Bottom + 18);
             _privacyCard.Size = new Size(availableWidth, privacyHeight);
             _lblPrivacySummary.Size = new Size(availableWidth - 40, 44);
-            _btnOpenPrivacyPolicy.Location = new Point(20, 102);
-            _lblPrivacyContent.Location = new Point(20, 156);
-            _lblPrivacyContent.Size = new Size(availableWidth - 40, privacyHeight - 176);
+            SizePrivacyPolicyButton(availableWidth - 40);
+            _btnOpenPrivacyPolicy.Location = new Point(20, 106);
+            int privacyContentTop = _btnOpenPrivacyPolicy.Bottom + 22;
+            _lblPrivacyContent.Location = new Point(20, privacyContentTop);
+            _lblPrivacyContent.Size = new Size(availableWidth - 40, privacyHeight - privacyContentTop - 24);
 
             _contentPanel.Width = Math.Max(10, viewportWidth - 1);
             _contentPanel.Height = _privacyCard.Bottom + 24;
+        }
+
+        private void SizePrivacyPolicyButton(int maxWidth)
+        {
+            int measuredWidth = TextRenderer.MeasureText(_btnOpenPrivacyPolicy.Text, _btnOpenPrivacyPolicy.Font).Width + 44;
+            int buttonWidth = Math.Min(Math.Max(220, measuredWidth), Math.Max(160, maxWidth));
+            _btnOpenPrivacyPolicy.Size = new Size(buttonWidth, 44);
         }
 
         private void BindLanguageModeOptions()

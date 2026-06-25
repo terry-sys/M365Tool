@@ -17,6 +17,8 @@ namespace Office365CleanupTool
         private const int ExpandedSidebarWidth = 258;
         private const int CollapsedSidebarWidth = 78;
         private const int SidebarBottomMargin = 16;
+        private const int SidebarNavGap = 8;
+        private const int CollapsedNavButtonHeight = 58;
 
         private readonly IScriptRunner _scriptRunner = new ScriptRunner();
         private readonly Panel _sidebar;
@@ -97,7 +99,7 @@ namespace Office365CleanupTool
             ShowIcon = true;
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(1024, 720);
-            Size = new Size(1600, 1000);
+            ClientSize = GetInitialClientSize();
             BackColor = Color.White;
 
             _sidebar = new Panel
@@ -321,6 +323,16 @@ namespace Office365CleanupTool
             Shown += (_, _) => OnWorkbenchShown();
             ApplyWorkbenchLayout();
             ShowPage("home");
+        }
+
+        private static Size GetInitialClientSize()
+        {
+            Rectangle workingArea = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1600, 1000);
+            int maxWidth = Math.Max(1024, Math.Min(2200, workingArea.Width - 80));
+            int maxHeight = Math.Max(720, Math.Min(1400, workingArea.Height - 80));
+            int width = Math.Clamp((int)(workingArea.Width * 0.82), 1024, maxWidth);
+            int height = Math.Clamp((int)(workingArea.Height * 0.82), 720, maxHeight);
+            return new Size(width, height);
         }
 
         private void OnWorkbenchShown()
@@ -945,6 +957,15 @@ namespace Office365CleanupTool
             int expandedNavHeight = compactNav ? 64 : 86;
             int expandedFirstTop = compactNav ? 154 : 184;
             int expandedItemStep = compactNav ? 68 : 82;
+            int collapsedFirstTop = 154;
+            int collapsedSettingsTop = Math.Max(
+                _btnToggleSidebar.Bottom + SidebarNavGap,
+                _sidebar.ClientSize.Height - SidebarBottomMargin - CollapsedNavButtonHeight);
+            int collapsedPrimaryCount = navOrder.Length - 1;
+            int collapsedAvailableStep = collapsedPrimaryCount > 1
+                ? (collapsedSettingsTop - SidebarNavGap - collapsedFirstTop - CollapsedNavButtonHeight) / (collapsedPrimaryCount - 1)
+                : CollapsedNavButtonHeight + SidebarNavGap;
+            int collapsedItemStep = Math.Max(CollapsedNavButtonHeight, Math.Min(68, collapsedAvailableStep));
 
             for (int i = 0; i < navOrder.Length; i++)
             {
@@ -954,9 +975,15 @@ namespace Office365CleanupTool
                     continue;
                 }
 
-                int top = _isSidebarCollapsed ? button.Location.Y : expandedFirstTop + i * expandedItemStep;
+                int top = _isSidebarCollapsed
+                    ? i == navOrder.Length - 1
+                        ? collapsedSettingsTop
+                        : collapsedFirstTop + i * collapsedItemStep
+                    : expandedFirstTop + i * expandedItemStep;
                 button.Location = new Point(_isSidebarCollapsed ? 12 : 20, top);
-                button.Size = new Size(_isSidebarCollapsed ? 54 : _sidebar.Width - 40, _isSidebarCollapsed ? 58 : expandedNavHeight);
+                button.Size = new Size(
+                    _isSidebarCollapsed ? 54 : _sidebar.Width - 40,
+                    _isSidebarCollapsed ? CollapsedNavButtonHeight : expandedNavHeight);
 
                 if (_isSidebarCollapsed)
                 {
@@ -989,10 +1016,10 @@ namespace Office365CleanupTool
             int targetTop = _sidebar.ClientSize.Height - SidebarBottomMargin - settingsButton.Height;
             if (_navButtons.TryGetValue("outlook", out Button? outlookButton))
             {
-                int belowOutlook = outlookButton.Bottom + 8;
-                if (targetTop > belowOutlook)
+                int belowOutlook = outlookButton.Bottom + SidebarNavGap;
+                if (targetTop < belowOutlook)
                 {
-                    targetTop = Math.Max(targetTop, belowOutlook);
+                    targetTop = belowOutlook;
                 }
             }
 
@@ -1160,9 +1187,28 @@ namespace Office365CleanupTool
             _accountDivider.Location = new Point(_lblAccountName.Right + dividerGap, (panelHeight - dividerHeight - 4) / 2);
             _accountDivider.Size = new Size(1, dividerHeight);
 
-            int pageWidth = Math.Max(320, _accountPanel.Left - 112);
+            int pageMargin = WorkbenchUi.GetAdaptivePageMargin(_headerPanel.ClientSize.Width);
+            int pageContentWidth = WorkbenchUi.GetAdaptiveContentWidth(
+                _headerPanel.ClientSize.Width,
+                320,
+                GetCurrentPageContentMaxWidth(),
+                pageMargin);
+            int pageLeft = WorkbenchUi.GetAdaptiveContentLeft(_headerPanel.ClientSize.Width, pageContentWidth, pageMargin);
+            int pageWidth = Math.Max(320, Math.Min(pageContentWidth, _accountPanel.Left - pageLeft - 48));
+            _lblPageTitle.Location = new Point(pageLeft, 86);
+            _lblPageDescription.Location = new Point(pageLeft + 2, 132);
             _lblPageTitle.Size = new Size(pageWidth, 48);
             _lblPageDescription.Size = new Size(pageWidth, 30);
+        }
+
+        private int GetCurrentPageContentMaxWidth()
+        {
+            return _currentPageKey switch
+            {
+                "home" or "install" => WorkbenchUi.WideContentMaxWidth,
+                "settings" => WorkbenchUi.ReadingContentMaxWidth,
+                _ => WorkbenchUi.DefaultContentMaxWidth
+            };
         }
 
         private void UpdateHeaderAccountPresentation()

@@ -353,12 +353,17 @@ namespace Office365CleanupTool
                 return;
             }
 
-            const int margin = 24;
             const int gap = 18;
             int viewportWidth = _scrollHost.ClientSize.Width;
             int viewportHeight = _scrollHost.ClientSize.Height;
-            int availableWidth = Math.Max(700, Math.Min(1160, viewportWidth - margin * 2 - 4));
-            int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
+            int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
+            int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
+                viewportWidth,
+                700,
+                WorkbenchUi.WideContentMaxWidth,
+                margin,
+                scrollbarAllowance: 4);
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
             int currentTop = 10;
 
             var fieldPairs = new List<(Control Label, Control Input)>

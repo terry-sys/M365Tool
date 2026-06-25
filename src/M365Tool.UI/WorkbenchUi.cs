@@ -145,6 +145,44 @@ namespace Office365CleanupTool
         public static Color WarningColor => Color.FromArgb(161, 92, 0);
         public static Color DangerColor => Color.FromArgb(180, 35, 24);
 
+        public const int DefaultContentMaxWidth = 2800;
+        public const int WideContentMaxWidth = 3000;
+        public const int ReadingContentMaxWidth = 2600;
+
+        public static int GetAdaptivePageMargin(int viewportWidth)
+        {
+            if (viewportWidth >= 2200)
+            {
+                return 64;
+            }
+
+            if (viewportWidth >= 1700)
+            {
+                return 48;
+            }
+
+            return viewportWidth < 760 ? 20 : 24;
+        }
+
+        public static int GetAdaptiveContentWidth(
+            int viewportWidth,
+            int minWidth,
+            int maxWidth = DefaultContentMaxWidth,
+            int? margin = null,
+            int scrollbarAllowance = 0)
+        {
+            int pageMargin = margin ?? GetAdaptivePageMargin(viewportWidth);
+            int usableWidth = Math.Max(0, viewportWidth - pageMargin * 2 - scrollbarAllowance);
+            return Math.Max(minWidth, Math.Min(maxWidth, usableWidth));
+        }
+
+        public static int GetAdaptiveContentLeft(int viewportWidth, int contentWidth, int margin)
+        {
+            return viewportWidth >= 1700
+                ? margin
+                : Math.Max(margin, (viewportWidth - contentWidth) / 2);
+        }
+
         public static Panel CreateCard(Point location, Size size, Color? backColor = null)
         {
             return CreateSurfacePanel(location, size, backColor ?? Color.White, CardBorderColor, 26);

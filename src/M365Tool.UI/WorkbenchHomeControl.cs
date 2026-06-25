@@ -310,9 +310,15 @@ namespace Office365CleanupTool
             int viewportWidth = _scrollHost.ClientSize.Width;
             int viewportHeight = _scrollHost.ClientSize.Height;
             bool compact = viewportHeight < 690 || viewportWidth < 980;
-            int margin = viewportWidth < 760 ? 20 : compact ? 32 : 46;
-            int availableWidth = Math.Max(520, Math.Min(1600, viewportWidth - margin * 2));
-            int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
+            int margin = viewportWidth >= 1700
+                ? WorkbenchUi.GetAdaptivePageMargin(viewportWidth)
+                : viewportWidth < 760 ? 20 : compact ? 32 : 46;
+            int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
+                viewportWidth,
+                520,
+                WorkbenchUi.WideContentMaxWidth,
+                margin);
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
             int workspaceTop = compact ? 38 : 58;
             int titleTop = compact ? 34 : 42;
             int moduleTop = compact ? 108 : 132;

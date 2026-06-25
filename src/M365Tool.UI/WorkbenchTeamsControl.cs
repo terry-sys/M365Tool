@@ -216,11 +216,17 @@ namespace Office365CleanupTool
                 return;
             }
 
-            const int margin = 24;
             const int gap = 18;
             int viewportWidth = _scrollHost.ClientSize.Width;
-            int availableWidth = Math.Max(560, Math.Min(1160, viewportWidth - margin * 2 - 4));
-            int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
+            int viewportHeight = _scrollHost.ClientSize.Height;
+            int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
+            int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
+                viewportWidth,
+                560,
+                WorkbenchUi.DefaultContentMaxWidth,
+                margin,
+                scrollbarAllowance: 4);
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
             int columns = availableWidth >= 980 ? 3 : availableWidth >= 680 ? 2 : 1;
             int cardWidth = (availableWidth - gap * (columns - 1)) / columns;
@@ -246,11 +252,12 @@ namespace Office365CleanupTool
                 : new Point(_helperCard.Width - _btnOpenCacheFolder.Width - 20, 18);
 
             _resultCard.Location = new Point(contentLeft, _helperCard.Bottom + 16);
-            _resultCard.Size = new Size(availableWidth, 252);
+            int resultHeight = Math.Max(252, viewportHeight - _resultCard.Top - 24);
+            _resultCard.Size = new Size(availableWidth, resultHeight);
             _lblResultStatus.Location = new Point(availableWidth - 168, 16);
             _lblResultStatus.Size = new Size(148, 28);
             _resultHost.Location = new Point(20, 50);
-            _resultHost.Size = new Size(_resultCard.Width - 40, 182);
+            _resultHost.Size = new Size(_resultCard.Width - 40, _resultCard.Height - 70);
             _txtResult.Location = new Point(12, 12);
             _txtResult.Size = new Size(_resultHost.Width - 24, _resultHost.Height - 24);
 

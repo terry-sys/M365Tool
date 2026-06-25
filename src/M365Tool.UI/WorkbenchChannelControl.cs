@@ -231,10 +231,15 @@ namespace Office365CleanupTool
 
         private void LayoutControls()
         {
-            const int margin = 24;
             int viewportWidth = ClientSize.Width;
-            int availableWidth = Math.Max(560, Math.Min(1160, viewportWidth - margin * 2));
-            int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
+            int viewportHeight = ClientSize.Height;
+            int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
+            int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
+                viewportWidth,
+                560,
+                WorkbenchUi.DefaultContentMaxWidth,
+                margin);
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
             bool stacked = availableWidth < 860;
             _settingsCard.Location = new Point(contentLeft, 18);
@@ -253,16 +258,18 @@ namespace Office365CleanupTool
 
             _resultCard.Location = new Point(contentLeft, _settingsCard.Bottom + 18);
             bool stackButton = availableWidth < 720;
-            _resultCard.Size = new Size(availableWidth, stackButton ? 292 : 246);
+            int resultHeight = Math.Max(stackButton ? 292 : 246, viewportHeight - _resultCard.Top - 24);
+            _resultCard.Size = new Size(availableWidth, resultHeight);
             _lblResultStatus.Location = new Point(availableWidth - 186, 16);
             _lblResultStatus.Size = new Size(166, 28);
             _resultHost.Location = new Point(20, 50);
-            _resultHost.Size = new Size(availableWidth - 40, 144);
+            int buttonTop = _resultCard.Height - _btnApply.Height - 20;
+            _resultHost.Size = new Size(availableWidth - 40, Math.Max(144, buttonTop - _resultHost.Top - 16));
             _txtResult.Location = new Point(12, 12);
             _txtResult.Size = new Size(_resultHost.Width - 24, _resultHost.Height - 24);
             _btnApply.Location = stackButton
-                ? new Point(20, 238)
-                : new Point(availableWidth - _btnApply.Width - 20, 198);
+                ? new Point(20, buttonTop)
+                : new Point(availableWidth - _btnApply.Width - 20, buttonTop);
 
             AutoScrollMinSize = new Size(0, _resultCard.Bottom + 24);
         }

@@ -192,10 +192,15 @@ namespace Office365CleanupTool
 
         private void LayoutControls()
         {
-            const int margin = 24;
             int viewportWidth = ClientSize.Width;
-            int availableWidth = Math.Max(560, Math.Min(1160, viewportWidth - margin * 2));
-            int contentLeft = Math.Max(margin, (viewportWidth - availableWidth) / 2);
+            int viewportHeight = ClientSize.Height;
+            int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
+            int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
+                viewportWidth,
+                560,
+                WorkbenchUi.DefaultContentMaxWidth,
+                margin);
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
             _targetCard.Location = new Point(contentLeft, 18);
             _targetCard.Size = new Size(availableWidth, 162);
@@ -212,12 +217,13 @@ namespace Office365CleanupTool
             _txtDetectedOffice.Size = new Size(_detectedHost.Width - 24, _detectedHost.Height - 24);
 
             _resultCard.Location = new Point(contentLeft, _detectedCard.Bottom + 18);
-            _resultCard.Size = new Size(availableWidth, 304);
+            int resultHeight = Math.Max(304, viewportHeight - _resultCard.Top - 24);
+            _resultCard.Size = new Size(availableWidth, resultHeight);
             _resultHost.Location = new Point(20, 46);
-            _resultHost.Size = new Size(availableWidth - 40, 166);
+            int buttonTop = _resultCard.Height - _btnStartUninstall.Height - 20;
+            _resultHost.Size = new Size(availableWidth - 40, Math.Max(166, buttonTop - _resultHost.Top - 20));
             _txtResult.Location = new Point(12, 12);
             _txtResult.Size = new Size(_resultHost.Width - 24, _resultHost.Height - 24);
-            int buttonTop = _resultHost.Bottom + 20;
             _btnStartUninstall.Location = new Point(availableWidth - _btnStartUninstall.Width - 20, buttonTop);
             _btnOpenLogs.Location = new Point(_btnStartUninstall.Left - _btnOpenLogs.Width - 10, buttonTop);
 
