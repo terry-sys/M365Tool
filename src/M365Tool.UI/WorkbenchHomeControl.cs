@@ -40,6 +40,7 @@ namespace Office365CleanupTool
 
         private sealed class ModuleDescriptionControls
         {
+            public string PageKey { get; set; } = string.Empty;
             public Panel Container { get; init; } = null!;
             public PictureBox Icon { get; init; } = null!;
             public Label Title { get; init; } = null!;
@@ -57,6 +58,8 @@ namespace Office365CleanupTool
         private readonly Label _lblTitle;
         private readonly Label _lblHint;
         private readonly ModuleDescriptionControls[] _modules;
+
+        public event EventHandler<string>? ModuleSelected;
 
         public WorkbenchHomeControl(
             AppSettingsService settingsService,
@@ -106,6 +109,7 @@ namespace Office365CleanupTool
 
             foreach (ModuleDescriptionControls module in _modules)
             {
+                WireModuleNavigation(module);
                 _workspaceCard.Controls.Add(module.Container);
             }
 
@@ -133,36 +137,42 @@ namespace Office365CleanupTool
 
             ApplyModuleCopy(
                 _modules[0],
+                "install",
                 ModuleIconKind.Install,
                 T("安装", "Install"),
                 T("标准化安装 M365 应用、Project 与 Visio，支持常用部署参数。", "Standardized deployment for M365 Apps, Project, and Visio."),
                 T("支持版本、位数、频道、语言与排除应用配置。", "Supports edition, architecture, channel, language, and app exclusions."));
             ApplyModuleCopy(
                 _modules[1],
+                "uninstall",
                 ModuleIconKind.Uninstall,
                 T("卸载", "Uninstall"),
                 T("调用微软官方能力卸载 Office，并保留必要处理记录。", "Uses official Microsoft capability to uninstall Office."),
                 T("保留处理痕迹，适用于重装前清理和异常恢复。", "Keeps execution records for cleanup and recovery scenarios."));
             ApplyModuleCopy(
                 _modules[2],
+                "channel",
                 ModuleIconKind.Channel,
                 T("更新频道", "Update Channel"),
                 T("调整 Office 更新频道，支持目标版本切换或回退。", "Adjusts Office channels and supports build rollback."),
                 T("适用于版本治理、问题回退与渠道统一。", "Fits version governance, rollback, and channel alignment."));
             ApplyModuleCopy(
                 _modules[3],
+                "repair",
                 ModuleIconKind.Repair,
                 T("清理与修复", "Cleanup & Repair"),
                 T("清理激活残留、账户痕迹，并修复代理与网络依赖。", "Cleans activation traces, account records, proxy, and network dependencies."),
                 T("提升后续安装、激活与登录成功率。", "Improves follow-up install, activation, and sign-in success."));
             ApplyModuleCopy(
                 _modules[4],
+                "teams",
                 ModuleIconKind.Teams,
                 T("Teams 工具", "Teams Tools"),
                 T("处理 Teams 缓存、登录记录和常见客户端配置异常。", "Handles Teams cache, sign-in records, and common client configuration issues."),
                 T("覆盖新版 Teams 启动异常与一线排障。", "Covers new Teams startup issues and frontline troubleshooting."));
             ApplyModuleCopy(
                 _modules[5],
+                "outlook",
                 ModuleIconKind.Outlook,
                 T("Outlook 工具", "Outlook Tools"),
                 T("执行 Outlook 扫描、诊断、日历检查和日志导出。", "Runs Outlook scans, diagnostics, calendar checks, and log export."),
@@ -178,10 +188,11 @@ namespace Office365CleanupTool
             var detail = CreateLabel(8.8F, FontStyle.Regular, Color.FromArgb(148, 162, 180));
             detail.Visible = false;
             var arrow = CreateLabel(24F, FontStyle.Regular, WorkbenchUi.PrimaryColor);
-            arrow.Text = string.Empty;
+            arrow.Text = "\uE76C";
+            arrow.Font = WorkbenchUi.CreateIconFont(14F, FontStyle.Regular);
             arrow.TextAlign = ContentAlignment.MiddleCenter;
             arrow.BackColor = Color.Transparent;
-            arrow.Visible = false;
+            arrow.Visible = true;
 
             panel.Controls.AddRange(new Control[] { icon, title, summary, detail, arrow });
             return new ModuleDescriptionControls
@@ -193,6 +204,44 @@ namespace Office365CleanupTool
                 Detail = detail,
                 Arrow = arrow
             };
+        }
+
+        private void WireModuleNavigation(ModuleDescriptionControls module)
+        {
+            foreach (Control control in GetModuleClickTargets(module))
+            {
+                control.Cursor = Cursors.Hand;
+                control.Click += (_, _) => NavigateToModule(module);
+                control.MouseDown += (_, e) =>
+                {
+                    if (e.Button == MouseButtons.Left)
+                    {
+                        module.Container.Padding = new Padding(1, 1, 0, 0);
+                    }
+                };
+                control.MouseUp += (_, _) => module.Container.Padding = Padding.Empty;
+                control.MouseLeave += (_, _) => module.Container.Padding = Padding.Empty;
+            }
+        }
+
+        private static IEnumerable<Control> GetModuleClickTargets(ModuleDescriptionControls module)
+        {
+            yield return module.Container;
+            yield return module.Icon;
+            yield return module.Title;
+            yield return module.Summary;
+            yield return module.Detail;
+            yield return module.Arrow;
+        }
+
+        private void NavigateToModule(ModuleDescriptionControls module)
+        {
+            if (string.IsNullOrWhiteSpace(module.PageKey))
+            {
+                return;
+            }
+
+            ModuleSelected?.Invoke(this, module.PageKey);
         }
 
         private static Panel CreateHomeModuleCard()
@@ -274,12 +323,16 @@ namespace Office365CleanupTool
             };
         }
 
-        private static void ApplyModuleCopy(ModuleDescriptionControls module, ModuleIconKind icon, string title, string summary, string detail)
+        private static void ApplyModuleCopy(ModuleDescriptionControls module, string pageKey, ModuleIconKind icon, string title, string summary, string detail)
         {
+            module.PageKey = pageKey;
             module.Icon.Image = GetModuleIcon(icon);
             module.Title.Text = title;
             module.Summary.Text = summary;
             module.Detail.Text = detail;
+            module.Container.AccessibleName = title;
+            module.Container.AccessibleDescription = summary;
+            module.Container.AccessibleRole = AccessibleRole.PushButton;
         }
 
         private static Image GetModuleIcon(ModuleIconKind icon) => ModuleIconImages.Value[icon];
@@ -309,41 +362,45 @@ namespace Office365CleanupTool
 
             int viewportWidth = _scrollHost.ClientSize.Width;
             int viewportHeight = _scrollHost.ClientSize.Height;
+            float scale = WorkbenchUi.GetAdaptiveUiScale(viewportWidth, viewportHeight);
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
             bool compact = viewportHeight < 690 || viewportWidth < 980;
-            int margin = viewportWidth >= 1700
-                ? WorkbenchUi.GetAdaptivePageMargin(viewportWidth)
-                : viewportWidth < 760 ? 20 : compact ? 32 : 46;
+            int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
             int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
                 viewportWidth,
                 520,
                 WorkbenchUi.WideContentMaxWidth,
-                margin);
+                margin,
+                scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
             int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
-            int workspaceTop = compact ? 38 : 58;
-            int titleTop = compact ? 34 : 42;
-            int moduleTop = compact ? 108 : 132;
-            int cardGap = compact ? 22 : 30;
-            int workspaceBottomPadding = compact ? 30 : 50;
+            int workspaceTop = S(compact ? 30 : 34);
+            int titleTop = S(compact ? 34 : 42);
+            int moduleTop = S(compact ? 108 : 132);
+            int cardGap = S(compact ? 22 : 30);
+            int workspaceBottomPadding = S(compact ? 30 : 50);
             int columnCount = availableWidth >= 980 ? 3 : availableWidth >= 680 ? 2 : 1;
             int rowCount = (int)Math.Ceiling(_modules.Length / (double)columnCount);
             int visibleRows = Math.Min(rowCount, 2);
             int moduleHeight = compact
-                ? Math.Max(204, Math.Min(232, (viewportHeight - workspaceTop - 14 - moduleTop - cardGap - workspaceBottomPadding) / Math.Max(1, visibleRows)))
-                : Math.Max(238, Math.Min(314, (viewportHeight - 298) / 2));
-            bool roomy = moduleHeight > 260 && columnCount == 3;
-            int innerLeft = availableWidth < 680 ? 30 : compact ? 42 : roomy ? 56 : 48;
+                ? Math.Max(S(204), Math.Min(S(232), (viewportHeight - workspaceTop - S(14) - moduleTop - cardGap - workspaceBottomPadding) / Math.Max(1, visibleRows)))
+                : Math.Max(S(238), Math.Min(S(314), (viewportHeight - S(298)) / 2));
+            bool roomy = moduleHeight > S(260) && columnCount == 3;
+            int innerLeft = S(availableWidth < 680 ? 30 : compact ? 42 : roomy ? 56 : 48);
             int innerWidth = availableWidth - innerLeft * 2;
             int columnWidth = (innerWidth - cardGap * (columnCount - 1)) / columnCount;
 
             _workspaceCard.Location = new Point(contentLeft, workspaceTop);
-            _workspaceCard.Size = new Size(availableWidth, 620);
+            _workspaceCard.Size = new Size(availableWidth, S(620));
 
+            ApplyLabelFont(_lblTitle, 18.8F, FontStyle.Bold, scale);
+            ApplyLabelFont(_lblHint, 11.8F, FontStyle.Regular, scale);
             _lblTitle.Location = new Point(innerLeft, titleTop);
-            _lblTitle.Size = new Size(innerWidth, 34);
-            _lblHint.Location = new Point(innerLeft, titleTop + 42);
-            _lblHint.Size = new Size(innerWidth, 28);
+            _lblTitle.Size = new Size(innerWidth, S(36));
+            _lblHint.Location = new Point(innerLeft, titleTop + S(42));
+            _lblHint.Size = new Size(innerWidth, S(30));
 
-            int top = compact ? moduleTop : roomy ? 166 : 132;
+            int top = compact ? moduleTop : roomy ? S(166) : S(132);
             for (int i = 0; i < _modules.Length; i++)
             {
                 int column = i % columnCount;
@@ -351,34 +408,37 @@ namespace Office365CleanupTool
                 int left = innerLeft + column * (columnWidth + cardGap);
                 int cardTop = top + row * (moduleHeight + cardGap);
 
-                LayoutModuleDescription(_modules[i], left, cardTop, columnWidth, moduleHeight);
+                LayoutModuleDescription(_modules[i], left, cardTop, columnWidth, moduleHeight, scale);
             }
 
             int contentBottom = top + rowCount * moduleHeight + (rowCount - 1) * cardGap;
-            _workspaceCard.Height = contentBottom + (compact ? workspaceBottomPadding : roomy ? 58 : 50);
+            _workspaceCard.Height = contentBottom + (compact ? workspaceBottomPadding : S(roomy ? 58 : 50));
             _contentPanel.Width = Math.Max(viewportWidth - 1, contentLeft + availableWidth + margin);
             _contentPanel.Height = _workspaceCard.Bottom + workspaceTop;
         }
 
-        private static void LayoutModuleDescription(ModuleDescriptionControls module, int left, int top, int width, int height)
+        private static void LayoutModuleDescription(ModuleDescriptionControls module, int left, int top, int width, int height, float scale)
         {
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
             module.Container.Location = new Point(left, top);
             module.Container.Size = new Size(width, height);
-            bool roomy = height > 260;
-            bool compact = height < 230;
-            int leftPad = compact ? 30 : roomy ? 38 : 34;
+            bool roomy = height > S(260);
+            bool compact = height < S(230);
+            int leftPad = S(compact ? 30 : roomy ? 38 : 34);
             int rightPad = leftPad;
-            int iconSize = compact ? 46 : roomy ? 58 : 52;
-            int iconTop = compact ? 24 : roomy ? 34 : 30;
+            int iconSize = S(compact ? 46 : roomy ? 58 : 52);
+            int iconTop = S(compact ? 24 : roomy ? 34 : 30);
             int titleHeight = iconSize;
-            int titleGap = compact ? 14 : 18;
+            int titleGap = S(compact ? 14 : 18);
             int titleLeft = leftPad + iconSize + titleGap;
             int titleTop = iconTop;
-            int summaryTop = iconTop + iconSize + (compact ? 18 : roomy ? 24 : 20);
-            int bottomPad = compact ? 18 : 24;
+            int summaryTop = iconTop + iconSize + S(compact ? 18 : roomy ? 24 : 20);
+            int bottomPad = S(compact ? 18 : 24);
 
-            ApplyLabelFont(module.Title, compact ? 17.2F : roomy ? 20.2F : 18.8F, FontStyle.Bold);
-            ApplyLabelFont(module.Summary, compact ? 11.2F : 12.7F, FontStyle.Regular);
+            ApplyLabelFont(module.Title, compact ? 17.2F : roomy ? 20.2F : 18.8F, FontStyle.Bold, scale);
+            ApplyLabelFont(module.Summary, compact ? 11.2F : 12.7F, FontStyle.Regular, scale);
+            WorkbenchUi.ApplyIconFont(module.Arrow, 13F, FontStyle.Regular, scale);
 
             module.Icon.Location = new Point(leftPad, iconTop);
             module.Icon.Size = new Size(iconSize, iconSize);
@@ -386,25 +446,16 @@ namespace Office365CleanupTool
             module.Title.Size = new Size(Math.Max(80, width - titleLeft - rightPad), titleHeight);
             module.Title.TextAlign = ContentAlignment.MiddleLeft;
             module.Summary.Location = new Point(leftPad, summaryTop);
-            module.Summary.Size = new Size(width - leftPad - rightPad, Math.Max(54, height - summaryTop - bottomPad));
-            module.Detail.Location = new Point(leftPad, 202);
-            module.Detail.Size = new Size(width - 112, 24);
-            module.Arrow.Location = new Point(width - 68, roomy ? height - 66 : height - 54);
-            module.Arrow.Size = new Size(34, 34);
+            module.Summary.Size = new Size(width - leftPad - rightPad, Math.Max(S(54), height - summaryTop - bottomPad));
+            module.Detail.Location = new Point(leftPad, S(202));
+            module.Detail.Size = new Size(width - S(112), S(24));
+            module.Arrow.Location = new Point(width - S(68), roomy ? height - S(66) : height - S(54));
+            module.Arrow.Size = new Size(S(34), S(34));
         }
 
-        private static void ApplyLabelFont(Label label, float size, FontStyle style)
+        private static void ApplyLabelFont(Label label, float size, FontStyle style, float scale = 1F)
         {
-            string fontKey = string.Create(
-                System.Globalization.CultureInfo.InvariantCulture,
-                $"{size:0.###}|{(int)style}");
-            if (string.Equals(label.Tag as string, fontKey, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            label.Font = WorkbenchUi.CreateUiFont(size, style);
-            label.Tag = fontKey;
+            WorkbenchUi.ApplyUiFont(label, size, style, scale);
         }
 
         private static Panel CreateWorkspacePanel()

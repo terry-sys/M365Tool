@@ -353,18 +353,25 @@ namespace Office365CleanupTool
                 return;
             }
 
-            const int gap = 18;
             int viewportWidth = _scrollHost.ClientSize.Width;
             int viewportHeight = _scrollHost.ClientSize.Height;
+            float scale = WorkbenchUi.GetAdaptiveUiScale(viewportWidth, viewportHeight);
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
+            WorkbenchUi.ApplyAdaptiveFonts(_contentPanel, scale);
+            _clbExcludeApps.ItemHeight = S(24);
+            _clbLanguages.ItemHeight = S(24);
+
+            int gap = S(18);
             int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
             int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
                 viewportWidth,
                 700,
                 WorkbenchUi.WideContentMaxWidth,
                 margin,
-                scrollbarAllowance: 4);
+                scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
             int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
-            int currentTop = 10;
+            int currentTop = S(10);
 
             var fieldPairs = new List<(Control Label, Control Input)>
             {
@@ -380,33 +387,38 @@ namespace Office365CleanupTool
 
             int maxColumns = availableWidth >= 980 ? 4 : availableWidth >= 760 ? 2 : 1;
             int fieldColumns = Math.Max(1, Math.Min(maxColumns, fieldPairs.Count));
-            int fieldColumnWidth = (availableWidth - 48 - gap * (fieldColumns - 1)) / fieldColumns;
+            int fieldColumnWidth = (availableWidth - S(48) - gap * (fieldColumns - 1)) / fieldColumns;
             int fieldRows = (int)Math.Ceiling(fieldPairs.Count / (double)fieldColumns);
 
             _basicCard.Location = new Point(contentLeft, currentTop);
-            _basicCard.Size = new Size(availableWidth, 76 + fieldRows * 74 + 16);
-            _lblBasicTitle.Location = new Point(20, 16);
-            _lblBasicHint.Location = new Point(20, 44);
-            _lblBasicHint.Size = new Size(availableWidth - 40, 20);
+            _basicCard.Size = new Size(availableWidth, S(76) + fieldRows * S(74) + S(16));
+            _lblBasicTitle.Location = new Point(S(20), S(16));
+            _lblBasicTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblBasicHint.Location = new Point(S(20), S(44));
+            _lblBasicHint.Size = new Size(availableWidth - S(40), S(22));
 
             for (int i = 0; i < fieldPairs.Count; i++)
             {
                 int row = i / fieldColumns;
                 int column = i % fieldColumns;
-                int left = 24 + column * (fieldColumnWidth + gap);
-                int fieldTop = 78 + row * 74;
+                int left = S(24) + column * (fieldColumnWidth + gap);
+                int fieldTop = S(78) + row * S(74);
                 fieldPairs[i].Label.Location = new Point(left, fieldTop);
-                fieldPairs[i].Label.Size = new Size(Math.Min(110, fieldColumnWidth), 24);
-                fieldPairs[i].Input.Location = new Point(left, fieldTop + 30);
-                fieldPairs[i].Input.Size = new Size(fieldColumnWidth, 32);
+                fieldPairs[i].Label.Size = new Size(Math.Min(S(110), fieldColumnWidth), S(24));
+                fieldPairs[i].Input.Location = new Point(left, fieldTop + S(30));
+                fieldPairs[i].Input.Size = new Size(fieldColumnWidth, S(32));
             }
-            currentTop = _basicCard.Bottom + 18;
+            currentTop = _basicCard.Bottom + S(18);
 
             _optionsCard.Location = new Point(contentLeft, currentTop);
-            _optionsCard.Size = new Size(availableWidth, 86);
-            _chkSilentInstall.Location = new Point(22, 46);
-            _chkPinToTaskbar.Location = new Point(150, 46);
-            currentTop = _optionsCard.Bottom + 18;
+            _optionsCard.Size = new Size(availableWidth, S(86));
+            _lblOptionsTitle.Location = new Point(S(20), S(14));
+            _lblOptionsTitle.Size = new Size(availableWidth - S(40), S(28));
+            _chkSilentInstall.Location = new Point(S(22), S(46));
+            _chkSilentInstall.Size = new Size(S(120), S(28));
+            _chkPinToTaskbar.Location = new Point(S(150), S(46));
+            _chkPinToTaskbar.Size = new Size(S(150), S(28));
+            currentTop = _optionsCard.Bottom + S(18);
 
             bool isM365Target = _excludeAppsCard.Visible;
             bool stackGroups = !isM365Target || availableWidth < 920;
@@ -414,85 +426,100 @@ namespace Office365CleanupTool
             {
                 int groupWidth = (availableWidth - gap) / 2;
                 _excludeAppsCard.Location = new Point(contentLeft, currentTop);
-                _excludeAppsCard.Size = new Size(groupWidth, 258);
-                _lblExcludeAppsTitle.Location = new Point(18, 14);
-                _excludeAppsHost.Location = new Point(18, 46);
-                _excludeAppsHost.Size = new Size(groupWidth - 36, 190);
-                _clbExcludeApps.Location = new Point(10, 10);
-                _clbExcludeApps.Size = new Size(_excludeAppsHost.Width - 20, _excludeAppsHost.Height - 20);
+                _excludeAppsCard.Size = new Size(groupWidth, S(258));
+                _lblExcludeAppsTitle.Location = new Point(S(18), S(14));
+                _lblExcludeAppsTitle.Size = new Size(groupWidth - S(36), S(28));
+                _excludeAppsHost.Location = new Point(S(18), S(46));
+                _excludeAppsHost.Size = new Size(groupWidth - S(36), S(190));
+                _clbExcludeApps.Location = new Point(S(10), S(10));
+                _clbExcludeApps.Size = new Size(_excludeAppsHost.Width - S(20), _excludeAppsHost.Height - S(20));
 
                 _languagesCard.Location = new Point(contentLeft + groupWidth + gap, currentTop);
-                _languagesCard.Size = new Size(groupWidth, 258);
-                _lblLanguagesTitle.Location = new Point(18, 14);
-                _txtLanguageSearch.Location = new Point(18, 44);
-                _txtLanguageSearch.Size = new Size(groupWidth - 36, 30);
-                _languagesHost.Location = new Point(18, 82);
-                _languagesHost.Size = new Size(groupWidth - 36, 154);
-                _clbLanguages.Location = new Point(10, 10);
-                _clbLanguages.Size = new Size(_languagesHost.Width - 20, _languagesHost.Height - 20);
-                currentTop = _languagesCard.Bottom + 18;
+                _languagesCard.Size = new Size(groupWidth, S(258));
+                _lblLanguagesTitle.Location = new Point(S(18), S(14));
+                _lblLanguagesTitle.Size = new Size(groupWidth - S(36), S(28));
+                _txtLanguageSearch.Location = new Point(S(18), S(44));
+                _txtLanguageSearch.Size = new Size(groupWidth - S(36), S(30));
+                _languagesHost.Location = new Point(S(18), S(82));
+                _languagesHost.Size = new Size(groupWidth - S(36), S(154));
+                _clbLanguages.Location = new Point(S(10), S(10));
+                _clbLanguages.Size = new Size(_languagesHost.Width - S(20), _languagesHost.Height - S(20));
+                currentTop = _languagesCard.Bottom + S(18);
             }
             else
             {
                 if (isM365Target)
                 {
                     _excludeAppsCard.Location = new Point(contentLeft, currentTop);
-                    _excludeAppsCard.Size = new Size(availableWidth, 258);
-                    _lblExcludeAppsTitle.Location = new Point(18, 14);
-                    _excludeAppsHost.Location = new Point(18, 46);
-                    _excludeAppsHost.Size = new Size(availableWidth - 36, 190);
-                    _clbExcludeApps.Location = new Point(10, 10);
-                    _clbExcludeApps.Size = new Size(_excludeAppsHost.Width - 20, _excludeAppsHost.Height - 20);
-                    currentTop = _excludeAppsCard.Bottom + 18;
+                    _excludeAppsCard.Size = new Size(availableWidth, S(258));
+                    _lblExcludeAppsTitle.Location = new Point(S(18), S(14));
+                    _lblExcludeAppsTitle.Size = new Size(availableWidth - S(36), S(28));
+                    _excludeAppsHost.Location = new Point(S(18), S(46));
+                    _excludeAppsHost.Size = new Size(availableWidth - S(36), S(190));
+                    _clbExcludeApps.Location = new Point(S(10), S(10));
+                    _clbExcludeApps.Size = new Size(_excludeAppsHost.Width - S(20), _excludeAppsHost.Height - S(20));
+                    currentTop = _excludeAppsCard.Bottom + S(18);
                 }
 
                 _languagesCard.Location = new Point(contentLeft, currentTop);
-                _languagesCard.Size = new Size(availableWidth, 258);
-                _lblLanguagesTitle.Location = new Point(18, 14);
-                _txtLanguageSearch.Location = new Point(18, 44);
-                _txtLanguageSearch.Size = new Size(availableWidth - 36, 30);
-                _languagesHost.Location = new Point(18, 82);
-                _languagesHost.Size = new Size(availableWidth - 36, 154);
-                _clbLanguages.Location = new Point(10, 10);
-                _clbLanguages.Size = new Size(_languagesHost.Width - 20, _languagesHost.Height - 20);
-                currentTop = _languagesCard.Bottom + 18;
+                _languagesCard.Size = new Size(availableWidth, S(258));
+                _lblLanguagesTitle.Location = new Point(S(18), S(14));
+                _lblLanguagesTitle.Size = new Size(availableWidth - S(36), S(28));
+                _txtLanguageSearch.Location = new Point(S(18), S(44));
+                _txtLanguageSearch.Size = new Size(availableWidth - S(36), S(30));
+                _languagesHost.Location = new Point(S(18), S(82));
+                _languagesHost.Size = new Size(availableWidth - S(36), S(154));
+                _clbLanguages.Location = new Point(S(10), S(10));
+                _clbLanguages.Size = new Size(_languagesHost.Width - S(20), _languagesHost.Height - S(20));
+                currentTop = _languagesCard.Bottom + S(18);
             }
 
             _precheckCard.Location = new Point(contentLeft, currentTop);
-            _precheckCard.Size = new Size(availableWidth, 244);
-            const int precheckHeaderHeight = 58;
-            _btnRefreshChecks.Location = new Point(availableWidth - _btnRefreshChecks.Width - 20, (precheckHeaderHeight - _btnRefreshChecks.Height) / 2);
-            _precheckOutputHost.Location = new Point(20, precheckHeaderHeight);
-            _precheckOutputHost.Size = new Size(availableWidth - 40, 162);
-            _txtPrecheckResult.Location = new Point(10, 10);
-            _txtPrecheckResult.Size = new Size(_precheckOutputHost.Width - 20, _precheckOutputHost.Height - 20);
-            currentTop = _precheckCard.Bottom + 18;
+            _precheckCard.Size = new Size(availableWidth, S(244));
+            int precheckHeaderHeight = S(58);
+            _lblPrecheckTitle.Location = new Point(S(20), S(14));
+            _lblPrecheckTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblPrecheckStatus.Location = new Point(availableWidth - S(188), S(16));
+            _lblPrecheckStatus.Size = new Size(S(168), S(28));
+            _btnRefreshChecks.Size = WorkbenchUi.ScaleSize(new Size(148, 40), scale);
+            _btnRefreshChecks.Location = new Point(availableWidth - _btnRefreshChecks.Width - S(20), (precheckHeaderHeight - _btnRefreshChecks.Height) / 2);
+            _precheckOutputHost.Location = new Point(S(20), precheckHeaderHeight);
+            _precheckOutputHost.Size = new Size(availableWidth - S(40), S(162));
+            _txtPrecheckResult.Location = new Point(S(10), S(10));
+            _txtPrecheckResult.Size = new Size(_precheckOutputHost.Width - S(20), _precheckOutputHost.Height - S(20));
+            currentTop = _precheckCard.Bottom + S(18);
 
-            int minResultHeight = _isInstalling ? 338 : 318;
-            int resultHeight = Math.Max(minResultHeight, viewportHeight - currentTop - 28);
+            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, currentTop, _isInstalling ? 338 : 318, 520, scale, bottomPadding: 28);
             _resultCard.Location = new Point(contentLeft, currentTop);
             _resultCard.Size = new Size(availableWidth, resultHeight);
 
-            int footerHeight = 40;
-            int footerGap = 16;
-            int detailsTop = 58;
-            int detailsBottom = _resultCard.Height - 20 - footerHeight - footerGap;
-            int detailsHeight = Math.Max(162, detailsBottom - detailsTop);
-            _resultOutputHost.Location = new Point(20, detailsTop);
-            _resultOutputHost.Size = new Size(availableWidth - 40, detailsHeight);
-            _txtResultDetails.Location = new Point(10, 10);
-            _txtResultDetails.Size = new Size(_resultOutputHost.Width - 20, _resultOutputHost.Height - 20);
+            _lblResultTitle.Location = new Point(S(20), S(14));
+            _lblResultTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblResult.Location = new Point(availableWidth - S(188), S(16));
+            _lblResult.Size = new Size(S(168), S(28));
+            _btnOpenLogs.Size = WorkbenchUi.ScaleSize(new Size(148, 40), scale);
+            _btnInstall.Size = WorkbenchUi.ScaleSize(new Size(148, 40), scale);
+
+            int footerHeight = S(40);
+            int footerGap = S(16);
+            int detailsTop = S(58);
+            int detailsBottom = _resultCard.Height - S(20) - footerHeight - footerGap;
+            int detailsHeight = Math.Max(S(162), detailsBottom - detailsTop);
+            _resultOutputHost.Location = new Point(S(20), detailsTop);
+            _resultOutputHost.Size = new Size(availableWidth - S(40), detailsHeight);
+            _txtResultDetails.Location = new Point(S(10), S(10));
+            _txtResultDetails.Size = new Size(_resultOutputHost.Width - S(20), _resultOutputHost.Height - S(20));
 
             int footerTop = _resultOutputHost.Bottom + footerGap;
-            _btnInstall.Location = new Point(availableWidth - _btnInstall.Width - 20, footerTop);
-            _btnOpenLogs.Location = new Point(_btnInstall.Left - _btnOpenLogs.Width - 12, footerTop);
-            int progressRight = _btnOpenLogs.Left - 16;
-            _progressBar.Location = new Point(20, footerTop + (_btnInstall.Height - 10) / 2);
-            _progressBar.Size = new Size(Math.Max(180, progressRight - 20), 10);
+            _btnInstall.Location = new Point(availableWidth - _btnInstall.Width - S(20), footerTop);
+            _btnOpenLogs.Location = new Point(_btnInstall.Left - _btnOpenLogs.Width - S(12), footerTop);
+            int progressRight = _btnOpenLogs.Left - S(16);
+            _progressBar.Location = new Point(S(20), footerTop + (_btnInstall.Height - S(10)) / 2);
+            _progressBar.Size = new Size(Math.Max(S(180), progressRight - S(20)), S(10));
             _progressBar.Visible = _isInstalling;
 
             _contentPanel.Width = Math.Max(10, viewportWidth - 1);
-            _contentPanel.Height = _resultCard.Bottom + 28;
+            _contentPanel.Height = _resultCard.Bottom + S(28);
         }
 
         private void UpdateConfiguration()

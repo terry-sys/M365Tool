@@ -319,7 +319,7 @@ namespace Office365CleanupTool
             BuildSidebar();
             ApplyLanguage();
             Resize += (_, _) => ApplyWorkbenchLayout();
-            DpiChanged += (_, _) => this.BeginInvokeWhenReady(ApplyWorkbenchLayout);
+            DpiChanged += (_, _) => this.BeginInvokeWhenReady(() => ApplyWorkbenchLayout());
             Shown += (_, _) => OnWorkbenchShown();
             ApplyWorkbenchLayout();
             ShowPage("home");
@@ -918,21 +918,50 @@ namespace Office365CleanupTool
 
         private void ToggleSidebar()
         {
-            _isSidebarCollapsed = !_isSidebarCollapsed;
-            ApplySidebarLayout();
-        }
-
-        private void ApplyWorkbenchLayout()
-        {
-            if (ClientSize.Width < 1280)
+            if (ShouldForceCollapsedSidebar())
             {
                 _isSidebarCollapsed = true;
-            }
-            else if (ClientSize.Width > 1380)
-            {
-                _isSidebarCollapsed = false;
+                ApplyWorkbenchLayout(updateSidebarMode: false);
+                return;
             }
 
+            _isSidebarCollapsed = !_isSidebarCollapsed;
+            ApplyWorkbenchLayout(updateSidebarMode: false);
+        }
+
+        private float GetShellScale() =>
+            WorkbenchUi.GetAdaptiveUiScale(ClientSize.Width, ClientSize.Height);
+
+        private bool ShouldForceCollapsedSidebar() =>
+            ClientSize.Width < 1280;
+
+        private static int GetSidebarWidth(bool isCollapsed, float scale) =>
+            WorkbenchUi.Scale(isCollapsed ? CollapsedSidebarWidth : ExpandedSidebarWidth, scale);
+
+        private int GetHeaderBaseHeight() =>
+            string.Equals(_currentPageKey, "home", StringComparison.OrdinalIgnoreCase) ? 170 : 194;
+
+        private void ApplyWorkbenchLayout(bool updateSidebarMode = true)
+        {
+            if (updateSidebarMode)
+            {
+                if (ShouldForceCollapsedSidebar())
+                {
+                    _isSidebarCollapsed = true;
+                }
+                else if (ClientSize.Width > 1380)
+                {
+                    _isSidebarCollapsed = false;
+                }
+            }
+
+            float shellScale = GetShellScale();
+            int sidebarWidth = GetSidebarWidth(_isSidebarCollapsed, shellScale);
+            int headerBaseHeight = GetHeaderBaseHeight();
+            float scale = WorkbenchUi.GetAdaptiveUiScale(
+                Math.Max(1, ClientSize.Width - sidebarWidth),
+                Math.Max(1, ClientSize.Height - WorkbenchUi.Scale(headerBaseHeight, shellScale)));
+            _headerPanel.Height = WorkbenchUi.Scale(headerBaseHeight, scale);
             ApplySidebarLayout();
             UpdateStatusLayout();
             UpdateHeaderLayout();
@@ -940,32 +969,74 @@ namespace Office365CleanupTool
 
         private void ApplySidebarLayout()
         {
-            _sidebar.Width = _isSidebarCollapsed ? CollapsedSidebarWidth : ExpandedSidebarWidth;
+            float scale = GetShellScale();
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
+            int expandedSidebarWidth = S(ExpandedSidebarWidth);
+            int collapsedSidebarWidth = S(CollapsedSidebarWidth);
+            int sidebarBottomMargin = S(SidebarBottomMargin);
+            int sidebarNavGap = S(SidebarNavGap);
+            int collapsedNavButtonHeight = S(CollapsedNavButtonHeight);
+
+            _sidebar.Width = _isSidebarCollapsed ? collapsedSidebarWidth : expandedSidebarWidth;
 
             _brandPanel.Visible = false;
             _lblBrandGlyph.Visible = false;
             _lblAppTitle.Visible = false;
             _lblAppSubtitle.Visible = false;
 
+            _btnToggleSidebar.Size = WorkbenchUi.ScaleSize(new Size(48, 48), scale);
+            WorkbenchUi.ApplyIconFont(_btnToggleSidebar, 16.5F, FontStyle.Regular, scale);
+            ApplyRoundedRegion(_btnToggleSidebar, S(24));
             int toggleLeft = _isSidebarCollapsed
-                ? (CollapsedSidebarWidth - _btnToggleSidebar.Width) / 2
-                : 18;
-            _btnToggleSidebar.Location = new Point(toggleLeft, 26);
+                ? (collapsedSidebarWidth - _btnToggleSidebar.Width) / 2
+                : S(18);
+            _btnToggleSidebar.Location = new Point(toggleLeft, S(26));
 
             string[] navOrder = { "home", "install", "uninstall", "channel", "repair", "teams", "outlook", "settings" };
-            bool compactNav = _sidebar.ClientSize.Height < 980;
-            int expandedNavHeight = compactNav ? 64 : 86;
-            int expandedFirstTop = compactNav ? 154 : 184;
-            int expandedItemStep = compactNav ? 68 : 82;
-            int collapsedFirstTop = 154;
+            int sidebarHeight = _sidebar.ClientSize.Height;
+            bool compactNav = sidebarHeight < S(980);
+            int expandedNavHeight = S(compactNav ? 64 : 86);
+            int expandedFirstTop = S(compactNav ? 154 : 184);
+            int expandedItemStep = S(compactNav ? 68 : 82);
+            if (compactNav)
+            {
+                int bottomLimit = Math.Max(
+                    _btnToggleSidebar.Bottom + sidebarNavGap + expandedNavHeight,
+                    sidebarHeight - sidebarBottomMargin);
+                int minimumGap = sidebarHeight < S(760) ? S(4) : sidebarNavGap;
+                int minimumFirstTop = _btnToggleSidebar.Bottom + (sidebarHeight < S(760) ? S(24) : S(48));
+                int requiredHeight = navOrder.Length * expandedNavHeight + (navOrder.Length - 1) * minimumGap;
+                if (bottomLimit - expandedFirstTop < requiredHeight)
+                {
+                    expandedFirstTop = Math.Max(minimumFirstTop, bottomLimit - requiredHeight);
+                }
+
+                int availableHeight = Math.Max(expandedNavHeight, bottomLimit - expandedFirstTop);
+                int fittedStep = navOrder.Length > 1
+                    ? (availableHeight - expandedNavHeight) / (navOrder.Length - 1)
+                    : expandedItemStep;
+                if (fittedStep < expandedNavHeight + minimumGap)
+                {
+                    int fittedHeight = (availableHeight - (navOrder.Length - 1) * minimumGap) / navOrder.Length;
+                    expandedNavHeight = Math.Max(S(48), Math.Min(expandedNavHeight, fittedHeight));
+                    fittedStep = navOrder.Length > 1
+                        ? (availableHeight - expandedNavHeight) / (navOrder.Length - 1)
+                        : expandedItemStep;
+                }
+
+                expandedItemStep = Math.Min(expandedItemStep, Math.Max(expandedNavHeight, fittedStep));
+            }
+
+            int collapsedFirstTop = S(154);
             int collapsedSettingsTop = Math.Max(
-                _btnToggleSidebar.Bottom + SidebarNavGap,
-                _sidebar.ClientSize.Height - SidebarBottomMargin - CollapsedNavButtonHeight);
+                _btnToggleSidebar.Bottom + sidebarNavGap,
+                sidebarHeight - sidebarBottomMargin - collapsedNavButtonHeight);
             int collapsedPrimaryCount = navOrder.Length - 1;
             int collapsedAvailableStep = collapsedPrimaryCount > 1
-                ? (collapsedSettingsTop - SidebarNavGap - collapsedFirstTop - CollapsedNavButtonHeight) / (collapsedPrimaryCount - 1)
-                : CollapsedNavButtonHeight + SidebarNavGap;
-            int collapsedItemStep = Math.Max(CollapsedNavButtonHeight, Math.Min(68, collapsedAvailableStep));
+                ? (collapsedSettingsTop - sidebarNavGap - collapsedFirstTop - collapsedNavButtonHeight) / (collapsedPrimaryCount - 1)
+                : collapsedNavButtonHeight + sidebarNavGap;
+            int collapsedItemStep = Math.Max(collapsedNavButtonHeight, Math.Min(S(68), collapsedAvailableStep));
 
             for (int i = 0; i < navOrder.Length; i++)
             {
@@ -980,23 +1051,23 @@ namespace Office365CleanupTool
                         ? collapsedSettingsTop
                         : collapsedFirstTop + i * collapsedItemStep
                     : expandedFirstTop + i * expandedItemStep;
-                button.Location = new Point(_isSidebarCollapsed ? 12 : 20, top);
+                button.Location = new Point(_isSidebarCollapsed ? S(12) : S(20), top);
                 button.Size = new Size(
-                    _isSidebarCollapsed ? 54 : _sidebar.Width - 40,
-                    _isSidebarCollapsed ? CollapsedNavButtonHeight : expandedNavHeight);
+                    _isSidebarCollapsed ? S(54) : _sidebar.Width - S(40),
+                    _isSidebarCollapsed ? collapsedNavButtonHeight : expandedNavHeight);
 
                 if (_isSidebarCollapsed)
                 {
                     button.TextAlign = ContentAlignment.MiddleCenter;
                     button.Padding = Padding.Empty;
-                    ApplyCollapsedNavIcon(button, key, isEnabled: true);
+                    ApplyCollapsedNavIcon(button, key, isEnabled: true, scale);
                 }
                 else
                 {
                     button.TextAlign = ContentAlignment.MiddleLeft;
                     button.Image = null;
-                    button.Padding = new Padding(40, 0, 0, 0);
-                    button.Font = WorkbenchUi.CreateUiFont(10.6F, FontStyle.Bold);
+                    button.Padding = new Padding(S(40), 0, 0, 0);
+                    WorkbenchUi.ApplyUiFont(button, 10.6F, FontStyle.Bold, scale);
                     button.Text = _navButtonTexts[key];
                 }
             }
@@ -1013,17 +1084,27 @@ namespace Office365CleanupTool
                 return;
             }
 
-            int targetTop = _sidebar.ClientSize.Height - SidebarBottomMargin - settingsButton.Height;
+            float scale = GetShellScale();
+            int sidebarBottomMargin = WorkbenchUi.Scale(SidebarBottomMargin, scale);
+            int sidebarNavGap = WorkbenchUi.Scale(SidebarNavGap, scale);
+            int targetTop = _sidebar.ClientSize.Height - sidebarBottomMargin - settingsButton.Height;
+            int maxVisibleTop = Math.Max(0, targetTop);
             if (_navButtons.TryGetValue("outlook", out Button? outlookButton))
             {
-                int belowOutlook = outlookButton.Bottom + SidebarNavGap;
-                if (targetTop < belowOutlook)
+                int belowOutlook = outlookButton.Bottom + sidebarNavGap;
+                if (targetTop >= belowOutlook)
                 {
-                    targetTop = belowOutlook;
+                    settingsButton.Top = maxVisibleTop;
                 }
+                else
+                {
+                    settingsButton.Top = Math.Min(settingsButton.Top, maxVisibleTop);
+                }
+
+                return;
             }
 
-            settingsButton.Top = Math.Max(0, targetTop);
+            settingsButton.Top = maxVisibleTop;
         }
 
         private void UpdateSelectionBarPosition()
@@ -1061,7 +1142,7 @@ namespace Office365CleanupTool
 
             _currentPageKey = key;
             UpdatePageHeaderText(key);
-            UpdateHeaderLayout();
+            ApplyWorkbenchLayout();
             UpdateNavigationVisualState();
 
             _contentHost.SuspendLayout();
@@ -1141,50 +1222,67 @@ namespace Office365CleanupTool
                 return;
             }
 
-            const int rightMargin = 48;
-            const int top = 88;
-            const int panelHeight = 62;
-            const int dividerGap = 12;
-            const int dividerHeight = 18;
+            float scale = WorkbenchUi.GetAdaptiveUiScale(
+                _headerPanel.ClientSize.Width,
+                Math.Max(1, ClientSize.Height - GetHeaderBaseHeight()));
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
+            WorkbenchUi.ApplyUiFont(_lblPageTitle, 24F, FontStyle.Bold, scale);
+            WorkbenchUi.ApplyUiFont(_lblPageDescription, 11F, FontStyle.Regular, scale);
+            WorkbenchUi.ApplyUiFont(_lblAccountAvatar, 13F, FontStyle.Bold, scale);
+            WorkbenchUi.ApplyUiFont(_lblAccountName, 9.6F, FontStyle.Bold, scale);
+            WorkbenchUi.ApplyUiFont(_lblAccountState, 8.4F, FontStyle.Regular, scale);
+            WorkbenchUi.ApplyUiFont(_btnSignIn, 9F, FontStyle.Bold, scale);
+            WorkbenchUi.ApplyUiFont(_btnSignOut, 8.9F, FontStyle.Bold, scale);
+
+            int rightMargin = S(48);
+            bool isHomePage = string.Equals(_currentPageKey, "home", StringComparison.OrdinalIgnoreCase);
+            int top = S(isHomePage ? 58 : 88);
+            int panelHeight = S(62);
+            int dividerGap = S(12);
+            int dividerHeight = S(18);
             bool isSignInMode = _btnSignIn.Visible;
-            int paddingLeft = isSignInMode ? 12 : 14;
-            int paddingRight = isSignInMode ? 12 : 14;
-            int avatarSize = isSignInMode ? 36 : 42;
-            int avatarTextGap = isSignInMode ? 12 : 14;
+            int paddingLeft = S(isSignInMode ? 12 : 14);
+            int paddingRight = S(isSignInMode ? 12 : 14);
+            int avatarSize = S(isSignInMode ? 36 : 42);
+            int avatarTextGap = S(isSignInMode ? 12 : 14);
             Button activeButton = isSignInMode ? _btnSignIn : _btnSignOut;
             Button inactiveButton = isSignInMode ? _btnSignOut : _btnSignIn;
-            int buttonWidth = Math.Clamp(TextRenderer.MeasureText(activeButton.Text, activeButton.Font).Width + (isSignInMode ? 26 : 18), isSignInMode ? 76 : 48, isSignInMode ? 96 : 64);
-            int buttonHeight = isSignInMode ? 36 : 30;
+            int buttonWidth = Math.Clamp(
+                TextRenderer.MeasureText(activeButton.Text, activeButton.Font).Width + S(isSignInMode ? 26 : 18),
+                S(isSignInMode ? 76 : 48),
+                S(isSignInMode ? 96 : 64));
+            int buttonHeight = S(isSignInMode ? 36 : 30);
             activeButton.Size = new Size(buttonWidth, buttonHeight);
-            int measuredNameWidth = TextRenderer.MeasureText(_lblAccountName.Text, _lblAccountName.Font).Width + 4;
-            int textWidth = isSignInMode ? Math.Clamp(measuredNameWidth, 52, 86) : Math.Clamp(measuredNameWidth, 64, 172);
+            int measuredNameWidth = TextRenderer.MeasureText(_lblAccountName.Text, _lblAccountName.Font).Width + S(4);
+            int textWidth = isSignInMode ? Math.Clamp(measuredNameWidth, S(52), S(86)) : Math.Clamp(measuredNameWidth, S(64), S(172));
             int signedInWidth = paddingLeft + avatarSize + avatarTextGap + textWidth + dividerGap + 1 + dividerGap + activeButton.Width + paddingRight;
-            int signInWidth = paddingLeft + avatarSize + avatarTextGap + textWidth + 14 + activeButton.Width + paddingRight;
+            int signInWidth = paddingLeft + avatarSize + avatarTextGap + textWidth + S(14) + activeButton.Width + paddingRight;
             int accountWidth = isSignInMode ? signInWidth : signedInWidth;
             _accountPanel.Size = new Size(accountWidth, panelHeight);
             _accountPanel.Location = new Point(_headerPanel.ClientSize.Width - accountWidth - rightMargin, top);
-            ApplyRoundedRegion(_accountPanel, 29);
+            ApplyRoundedRegion(_accountPanel, S(29));
             _accountPanel.Invalidate();
 
             _lblAccountAvatar.Visible = true;
-            _lblAccountAvatar.Location = new Point(paddingLeft, (panelHeight - avatarSize - 4) / 2);
+            _lblAccountAvatar.Location = new Point(paddingLeft, (panelHeight - avatarSize - S(4)) / 2);
             _lblAccountAvatar.Size = new Size(avatarSize, avatarSize);
             ApplyRoundedRegion(_lblAccountAvatar, avatarSize / 2);
 
             activeButton.Visible = true;
-            int buttonTop = (panelHeight - activeButton.Height - 4) / 2;
+            int buttonTop = (panelHeight - activeButton.Height - S(4)) / 2;
             activeButton.Location = new Point(accountWidth - paddingRight - activeButton.Width, buttonTop);
             inactiveButton.Location = new Point(accountWidth - paddingRight - inactiveButton.Width, buttonTop);
 
             int textLeft = _lblAccountAvatar.Right + avatarTextGap;
             _lblAccountName.Visible = true;
-            _lblAccountName.Location = new Point(textLeft, (panelHeight - 24 - 4) / 2);
-            _lblAccountName.Size = new Size(textWidth, 24);
+            _lblAccountName.Location = new Point(textLeft, (panelHeight - S(24) - S(4)) / 2);
+            _lblAccountName.Size = new Size(textWidth, S(24));
             _lblAccountState.Location = new Point(textLeft, _lblAccountName.Bottom);
             _lblAccountState.Size = new Size(textWidth, 0);
             _lblAccountState.Visible = false;
             _accountDivider.Visible = !isSignInMode;
-            _accountDivider.Location = new Point(_lblAccountName.Right + dividerGap, (panelHeight - dividerHeight - 4) / 2);
+            _accountDivider.Location = new Point(_lblAccountName.Right + dividerGap, (panelHeight - dividerHeight - S(4)) / 2);
             _accountDivider.Size = new Size(1, dividerHeight);
 
             int pageMargin = WorkbenchUi.GetAdaptivePageMargin(_headerPanel.ClientSize.Width);
@@ -1192,13 +1290,14 @@ namespace Office365CleanupTool
                 _headerPanel.ClientSize.Width,
                 320,
                 GetCurrentPageContentMaxWidth(),
-                pageMargin);
+                pageMargin,
+                scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
             int pageLeft = WorkbenchUi.GetAdaptiveContentLeft(_headerPanel.ClientSize.Width, pageContentWidth, pageMargin);
-            int pageWidth = Math.Max(320, Math.Min(pageContentWidth, _accountPanel.Left - pageLeft - 48));
-            _lblPageTitle.Location = new Point(pageLeft, 86);
-            _lblPageDescription.Location = new Point(pageLeft + 2, 132);
-            _lblPageTitle.Size = new Size(pageWidth, 48);
-            _lblPageDescription.Size = new Size(pageWidth, 30);
+            int pageWidth = Math.Max(S(320), Math.Min(pageContentWidth, _accountPanel.Left - pageLeft - S(48)));
+            _lblPageTitle.Location = new Point(pageLeft, S(isHomePage ? 70 : 86));
+            _lblPageDescription.Location = new Point(pageLeft + S(2), S(isHomePage ? 116 : 132));
+            _lblPageTitle.Size = new Size(pageWidth, S(isHomePage ? 42 : 52));
+            _lblPageDescription.Size = new Size(pageWidth, S(32));
         }
 
         private int GetCurrentPageContentMaxWidth()
@@ -1417,6 +1516,7 @@ namespace Office365CleanupTool
         private void UpdateNavigationVisualState()
         {
             bool granted = HasAccessGranted();
+            float scale = GetShellScale();
             foreach ((string navKey, Button navButton) in _navButtons)
             {
                 bool isActive = string.Equals(navKey, _currentPageKey, StringComparison.OrdinalIgnoreCase);
@@ -1434,11 +1534,11 @@ namespace Office365CleanupTool
                     navButton.FlatAppearance.MouseDownBackColor = Color.Transparent;
                     if (_isSidebarCollapsed)
                     {
-                        ApplyCollapsedNavIcon(navButton, navKey, isEnabled: false);
+                        ApplyCollapsedNavIcon(navButton, navKey, isEnabled: false, scale);
                     }
                     else
                     {
-                        navButton.Font = WorkbenchUi.CreateUiFont(10.6F, FontStyle.Bold);
+                        WorkbenchUi.ApplyUiFont(navButton, 10.6F, FontStyle.Bold, scale);
                         navButton.Text = _navButtonTexts[navKey];
                         navButton.Image = null;
                     }
@@ -1454,11 +1554,11 @@ namespace Office365CleanupTool
                 navButton.ForeColor = isActive ? WorkbenchUi.PrimaryColor : WorkbenchUi.SecondaryTextColor;
                 if (_isSidebarCollapsed)
                 {
-                    ApplyCollapsedNavIcon(navButton, navKey, isEnabled: true);
+                    ApplyCollapsedNavIcon(navButton, navKey, isEnabled: true, scale);
                 }
                 else
                 {
-                    navButton.Font = WorkbenchUi.CreateUiFont(10.6F, FontStyle.Bold);
+                    WorkbenchUi.ApplyUiFont(navButton, 10.6F, FontStyle.Bold, scale);
                     navButton.Text = _navButtonTexts[navKey];
                     navButton.Image = null;
                 }
@@ -1467,11 +1567,11 @@ namespace Office365CleanupTool
             UpdateSelectionBarPosition();
         }
 
-        private static void ApplyCollapsedNavIcon(Button button, string key, bool isEnabled)
+        private static void ApplyCollapsedNavIcon(Button button, string key, bool isEnabled, float scale)
         {
             if (TryGetNavPngIcon(key, isEnabled, out Image? image))
             {
-                button.Font = WorkbenchUi.CreateUiFont(1F, FontStyle.Regular);
+                WorkbenchUi.ApplyUiFont(button, 1F, FontStyle.Regular, scale);
                 button.Text = string.Empty;
                 button.Image = image;
                 button.ImageAlign = ContentAlignment.MiddleCenter;
@@ -1480,7 +1580,7 @@ namespace Office365CleanupTool
 
             button.Image = null;
             button.ImageAlign = ContentAlignment.MiddleCenter;
-            button.Font = WorkbenchUi.CreateIconFont(13.5F, FontStyle.Regular);
+            WorkbenchUi.ApplyIconFont(button, 13.5F, FontStyle.Regular, scale);
             button.Text = GetNavIcon(key);
         }
 
@@ -1808,7 +1908,9 @@ namespace Office365CleanupTool
 
         private Control BuildHomePage()
         {
-            return new WorkbenchHomeControl(_appSettingsService, _appSettings, _currentLanguage);
+            var homePage = new WorkbenchHomeControl(_appSettingsService, _appSettings, _currentLanguage);
+            homePage.ModuleSelected += (_, pageKey) => ShowPage(pageKey);
+            return homePage;
         }
 
         private Control BuildSettingsPage()

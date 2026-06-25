@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -15,6 +17,17 @@ namespace Office365CleanupTool
 
     internal static class WorkbenchUi
     {
+        private sealed class FontState
+        {
+            public string FamilyName { get; set; } = string.Empty;
+            public float BasePointSize { get; set; }
+            public FontStyle Style { get; set; }
+            public float AppliedScale { get; set; } = 1F;
+            public bool HasBase { get; set; }
+        }
+
+        private static readonly ConditionalWeakTable<Control, FontState> FontStates = new();
+
         public static Font CreateUiFont(float pointSize, FontStyle style = FontStyle.Regular) =>
             CreateFont("Microsoft YaHei UI", pointSize, style);
 
@@ -23,6 +36,96 @@ namespace Office365CleanupTool
 
         public static Font CreateFont(string familyName, float pointSize, FontStyle style = FontStyle.Regular) =>
             new(familyName, pointSize * 96F / 72F, style, GraphicsUnit.Pixel);
+
+        public static float GetAdaptiveUiScale(int viewportWidth, int viewportHeight)
+        {
+            if (viewportWidth <= 0 || viewportHeight <= 0)
+            {
+                return 1F;
+            }
+
+            float widthScale = viewportWidth / 1500F;
+            float heightScale = viewportHeight / 820F;
+            return Math.Clamp(Math.Min(widthScale, heightScale), 1F, 1.32F);
+        }
+
+        public static int GetAdaptiveResultCardHeight(
+            int viewportHeight,
+            int top,
+            int minBaseHeight,
+            int maxBaseHeight,
+            float scale,
+            int bottomPadding = 24)
+        {
+            int minimumHeight = Scale(minBaseHeight, scale);
+            int maximumHeight = Scale(maxBaseHeight, scale);
+            int fillHeight = viewportHeight - top - Scale(bottomPadding, scale);
+            return Math.Clamp(Math.Max(minimumHeight, fillHeight), minimumHeight, maximumHeight);
+        }
+
+        public static int Scale(int value, float scale) =>
+            (int)Math.Round(value * NormalizeScale(scale));
+
+        public static Size ScaleSize(Size size, float scale) =>
+            new(Scale(size.Width, scale), Scale(size.Height, scale));
+
+        public static Point ScalePoint(Point point, float scale) =>
+            new(Scale(point.X, scale), Scale(point.Y, scale));
+
+        public static void ApplyUiFont(Control control, float pointSize, FontStyle style = FontStyle.Regular, float scale = 1F) =>
+            ApplyFont(control, "Microsoft YaHei UI", pointSize, style, scale, updateBase: true);
+
+        public static void ApplyIconFont(Control control, float pointSize, FontStyle style = FontStyle.Regular, float scale = 1F) =>
+            ApplyFont(control, "Segoe MDL2 Assets", pointSize, style, scale, updateBase: true);
+
+        public static void ApplyAdaptiveFonts(Control root, float scale)
+        {
+            ApplyAdaptiveFont(root, scale);
+
+            foreach (Control child in root.Controls)
+            {
+                ApplyAdaptiveFonts(child, scale);
+            }
+        }
+
+        public static void LayoutActionCard(Panel card, float scale)
+        {
+            Label[] labels = card.Controls.OfType<Label>().OrderBy(item => item.Top).ToArray();
+            Button? button = card.Controls.OfType<Button>().FirstOrDefault();
+            if (labels.Length < 2 || button is null)
+            {
+                return;
+            }
+
+            int sidePadding = Scale(18, scale);
+            int titleTop = Scale(16, scale);
+            int titleHeight = Scale(26, scale);
+            int descriptionTop = Scale(48, scale);
+
+            ApplyUiFont(labels[0], 11F, FontStyle.Bold, scale);
+            ApplyUiFont(labels[1], 9.25F, FontStyle.Regular, scale);
+            ApplyUiFont(button, 9.5F, FontStyle.Bold, scale);
+
+            int measuredButtonWidth = TextRenderer.MeasureText(button.Text, button.Font).Width + Scale(36, scale);
+            int maxButtonWidth = Math.Max(Scale(96, scale), card.Width - sidePadding * 2);
+            int buttonWidth = Math.Min(Math.Max(Scale(136, scale), measuredButtonWidth), maxButtonWidth);
+            int buttonHeight = Scale(42, scale);
+            int buttonBottom = Scale(22, scale);
+            int minimumButtonTop = descriptionTop + Scale(58, scale);
+            int preferredButtonTop = card.Height - buttonBottom - buttonHeight;
+            int maxButtonTop = Math.Max(descriptionTop + Scale(34, scale), card.Height - Scale(14, scale) - buttonHeight);
+            int buttonTop = Math.Min(Math.Max(minimumButtonTop, preferredButtonTop), maxButtonTop);
+            int descriptionHeight = Math.Max(0, buttonTop - descriptionTop - Scale(10, scale));
+
+            labels[0].Location = new Point(sidePadding, titleTop);
+            labels[0].Size = new Size(Math.Max(80, card.Width - sidePadding * 2), titleHeight);
+            labels[1].Location = new Point(sidePadding, descriptionTop);
+            labels[1].Size = new Size(
+                Math.Max(80, card.Width - sidePadding * 2),
+                descriptionHeight);
+            button.Location = new Point(sidePadding, buttonTop);
+            button.Size = new Size(buttonWidth, buttonHeight);
+        }
 
         private sealed class SmoothButton : Button
         {
@@ -400,8 +503,9 @@ namespace Office365CleanupTool
 
         public static void ApplyStatusStyle(Label label, WorkbenchTone tone)
         {
-            label.Font = WorkbenchUi.CreateUiFont(7.5F, FontStyle.Bold);
-            label.Padding = new Padding(6, 1, 6, 1);
+            float scale = GetAppliedFontScale(label);
+            WorkbenchUi.ApplyUiFont(label, 7.5F, FontStyle.Bold, scale);
+            label.Padding = new Padding(Scale(6, scale), Scale(1, scale), Scale(6, scale), Scale(1, scale));
             label.TextAlign = ContentAlignment.MiddleCenter;
             label.BorderStyle = BorderStyle.None;
 
@@ -472,6 +576,71 @@ namespace Office365CleanupTool
             panel.Controls.AddRange(new Control[] { lblTitle, lblDescription, actionButton });
             return panel;
         }
+
+        private static void ApplyAdaptiveFont(Control control, float scale)
+        {
+            FontState state = FontStates.GetValue(control, _ => new FontState());
+            if (!state.HasBase)
+            {
+                state.FamilyName = control.Font.FontFamily.Name;
+                state.BasePointSize = GetPointSize(control.Font);
+                state.Style = control.Font.Style;
+                state.HasBase = true;
+            }
+
+            ApplyFont(control, state.FamilyName, state.BasePointSize, state.Style, scale, updateBase: false);
+        }
+
+        private static void ApplyFont(Control control, string familyName, float pointSize, FontStyle style, float scale, bool updateBase)
+        {
+            float normalizedScale = NormalizeScale(scale);
+            FontState state = FontStates.GetValue(control, _ => new FontState());
+
+            float effectivePointSize = (float)Math.Round(pointSize * normalizedScale, 2);
+            if (state.HasBase &&
+                string.Equals(state.FamilyName, familyName, StringComparison.Ordinal) &&
+                Math.Abs(state.BasePointSize - pointSize) < 0.01F &&
+                state.Style == style &&
+                Math.Abs(state.AppliedScale - normalizedScale) < 0.001F &&
+                IsCurrentFont(control.Font, familyName, effectivePointSize, style))
+            {
+                return;
+            }
+
+            control.Font = CreateFont(familyName, effectivePointSize, style);
+            state.FamilyName = familyName;
+            state.BasePointSize = pointSize;
+            state.Style = style;
+            state.AppliedScale = normalizedScale;
+            state.HasBase = true;
+        }
+
+        private static float GetAppliedFontScale(Control control)
+        {
+            return FontStates.TryGetValue(control, out FontState? state)
+                ? state.AppliedScale
+                : 1F;
+        }
+
+        private static float GetPointSize(Font font)
+        {
+            return font.Unit == GraphicsUnit.Pixel
+                ? font.Size * 72F / 96F
+                : font.SizeInPoints;
+        }
+
+        private static bool IsCurrentFont(Font font, string familyName, float pixelSize, FontStyle style)
+        {
+            float currentPixelSize = font.Unit == GraphicsUnit.Pixel
+                ? font.Size
+                : font.SizeInPoints * 96F / 72F;
+            return string.Equals(font.FontFamily.Name, familyName, StringComparison.Ordinal) &&
+                   font.Style == style &&
+                   Math.Abs(currentPixelSize - pixelSize * 96F / 72F) < 0.5F;
+        }
+
+        private static float NormalizeScale(float scale) =>
+            Math.Clamp(scale, 0.8F, 1.5F);
 
         private static void ApplyRoundedRegion(Control control, int radius)
         {

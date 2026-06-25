@@ -194,46 +194,62 @@ namespace Office365CleanupTool
         {
             int viewportWidth = ClientSize.Width;
             int viewportHeight = ClientSize.Height;
+            float scale = WorkbenchUi.GetAdaptiveUiScale(viewportWidth, viewportHeight);
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
+            WorkbenchUi.ApplyAdaptiveFonts(this, scale);
+
             int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
             int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
                 viewportWidth,
                 560,
                 WorkbenchUi.DefaultContentMaxWidth,
-                margin);
+                margin,
+                scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
             int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
-            _targetCard.Location = new Point(contentLeft, 18);
-            _targetCard.Size = new Size(availableWidth, 162);
-            _cboTarget.Location = new Point(20, 46);
-            _cboTarget.Width = Math.Min(420, availableWidth - 40);
-            _lblDescription.Location = new Point(20, 88);
-            _lblDescription.Size = new Size(availableWidth - 40, 52);
+            _targetCard.Location = new Point(contentLeft, S(18));
+            _targetCard.Size = new Size(availableWidth, S(162));
+            _lblTargetTitle.Location = new Point(S(20), S(14));
+            _lblTargetTitle.Size = new Size(availableWidth - S(40), S(28));
+            _cboTarget.Location = new Point(S(20), S(46));
+            _cboTarget.Size = new Size(Math.Min(S(420), availableWidth - S(40)), S(32));
+            _lblDescription.Location = new Point(S(20), S(88));
+            _lblDescription.Size = new Size(availableWidth - S(40), S(54));
 
-            _detectedCard.Location = new Point(contentLeft, _targetCard.Bottom + 18);
-            _detectedCard.Size = new Size(availableWidth, _detectedPreferredHeight);
-            _detectedHost.Location = new Point(20, 52);
-            _detectedHost.Size = new Size(availableWidth - 40, _detectedCard.Height - 72);
-            _txtDetectedOffice.Location = new Point(12, 12);
-            _txtDetectedOffice.Size = new Size(_detectedHost.Width - 24, _detectedHost.Height - 24);
+            _detectedCard.Location = new Point(contentLeft, _targetCard.Bottom + S(18));
+            _detectedCard.Size = new Size(availableWidth, S(_detectedPreferredHeight));
+            _lblDetectedTitle.Location = new Point(S(20), S(14));
+            _lblDetectedTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblDetectedStatus.Location = new Point(availableWidth - S(188), S(16));
+            _lblDetectedStatus.Size = new Size(S(168), S(28));
+            _detectedHost.Location = new Point(S(20), S(52));
+            _detectedHost.Size = new Size(availableWidth - S(40), _detectedCard.Height - S(72));
+            _txtDetectedOffice.Location = new Point(S(12), S(12));
+            _txtDetectedOffice.Size = new Size(_detectedHost.Width - S(24), _detectedHost.Height - S(24));
 
-            _resultCard.Location = new Point(contentLeft, _detectedCard.Bottom + 18);
-            int resultHeight = Math.Max(304, viewportHeight - _resultCard.Top - 24);
+            _resultCard.Location = new Point(contentLeft, _detectedCard.Bottom + S(18));
+            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top, 304, 450, scale);
             _resultCard.Size = new Size(availableWidth, resultHeight);
-            _resultHost.Location = new Point(20, 46);
-            int buttonTop = _resultCard.Height - _btnStartUninstall.Height - 20;
-            _resultHost.Size = new Size(availableWidth - 40, Math.Max(166, buttonTop - _resultHost.Top - 20));
-            _txtResult.Location = new Point(12, 12);
-            _txtResult.Size = new Size(_resultHost.Width - 24, _resultHost.Height - 24);
-            _btnStartUninstall.Location = new Point(availableWidth - _btnStartUninstall.Width - 20, buttonTop);
-            _btnOpenLogs.Location = new Point(_btnStartUninstall.Left - _btnOpenLogs.Width - 10, buttonTop);
+            _lblResultTitle.Location = new Point(S(20), S(14));
+            _lblResultTitle.Size = new Size(availableWidth - S(40), S(28));
+            _btnOpenLogs.Size = WorkbenchUi.ScaleSize(new Size(132, 42), scale);
+            _btnStartUninstall.Size = WorkbenchUi.ScaleSize(new Size(132, 42), scale);
+            _resultHost.Location = new Point(S(20), S(46));
+            int buttonTop = _resultCard.Height - _btnStartUninstall.Height - S(20);
+            _resultHost.Size = new Size(availableWidth - S(40), Math.Max(S(166), buttonTop - _resultHost.Top - S(20)));
+            _txtResult.Location = new Point(S(12), S(12));
+            _txtResult.Size = new Size(_resultHost.Width - S(24), _resultHost.Height - S(24));
+            _btnStartUninstall.Location = new Point(availableWidth - _btnStartUninstall.Width - S(20), buttonTop);
+            _btnOpenLogs.Location = new Point(_btnStartUninstall.Left - _btnOpenLogs.Width - S(10), buttonTop);
 
             if (availableWidth < 640)
             {
-                _btnStartUninstall.Location = new Point(20, buttonTop);
-                _btnOpenLogs.Location = new Point(20 + _btnStartUninstall.Width + 10, buttonTop);
+                _btnStartUninstall.Location = new Point(S(20), buttonTop);
+                _btnOpenLogs.Location = new Point(S(20) + _btnStartUninstall.Width + S(10), buttonTop);
             }
 
-            AutoScrollMinSize = new Size(0, _resultCard.Bottom + 24);
+            AutoScrollMinSize = new Size(0, _resultCard.Bottom + S(24));
         }
 
         private void RefreshDetectedOffice()

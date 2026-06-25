@@ -233,45 +233,61 @@ namespace Office365CleanupTool
         {
             int viewportWidth = ClientSize.Width;
             int viewportHeight = ClientSize.Height;
+            float scale = WorkbenchUi.GetAdaptiveUiScale(viewportWidth, viewportHeight);
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
+            WorkbenchUi.ApplyAdaptiveFonts(this, scale);
+
             int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
             int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
                 viewportWidth,
                 560,
                 WorkbenchUi.DefaultContentMaxWidth,
-                margin);
+                margin,
+                scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
             int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
             bool stacked = availableWidth < 860;
-            _settingsCard.Location = new Point(contentLeft, 18);
-            _settingsCard.Size = new Size(availableWidth, stacked ? 240 : 194);
-            _lblChannelTitle.Location = new Point(20, 48);
-            _cboChannel.Location = new Point(20, 78);
-            _cboChannel.Width = stacked ? availableWidth - 40 : Math.Min(320, availableWidth - 40);
-            _cboVersion.Location = stacked ? new Point(20, 146) : new Point(Math.Min(372, availableWidth / 2), 78);
-            _cboVersion.Width = stacked
-                ? availableWidth - 40
-                : Math.Max(260, availableWidth - _cboVersion.Left - 20);
-            _lblVersionTitle.Location = stacked ? new Point(20, 116) : new Point(_cboVersion.Left, 48);
-            _lblLoading.Location = new Point(20, stacked ? 188 : 120);
-            _lblLoading.Size = new Size(400, 22);
-            _chkDisableUpdates.Location = new Point(20, stacked ? 210 : 150);
+            _settingsCard.Location = new Point(contentLeft, S(18));
+            _settingsCard.Size = new Size(availableWidth, stacked ? S(240) : S(194));
+            _lblSettingsTitle.Location = new Point(S(20), S(14));
+            _lblSettingsTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblChannelTitle.Location = new Point(S(20), S(48));
+            _lblChannelTitle.Size = new Size(S(160), S(24));
+            _cboChannel.Location = new Point(S(20), S(78));
+            _cboChannel.Size = new Size(stacked ? availableWidth - S(40) : Math.Min(S(320), availableWidth - S(40)), S(32));
+            _cboVersion.Location = stacked ? new Point(S(20), S(146)) : new Point(Math.Min(S(372), availableWidth / 2), S(78));
+            _cboVersion.Size = new Size(
+                stacked
+                    ? availableWidth - S(40)
+                    : Math.Max(S(260), availableWidth - _cboVersion.Left - S(20)),
+                S(32));
+            _lblVersionTitle.Location = stacked ? new Point(S(20), S(116)) : new Point(_cboVersion.Left, S(48));
+            _lblVersionTitle.Size = new Size(S(180), S(24));
+            _lblLoading.Location = new Point(S(20), stacked ? S(188) : S(120));
+            _lblLoading.Size = new Size(Math.Min(availableWidth - S(40), S(520)), S(24));
+            _chkDisableUpdates.Location = new Point(S(20), stacked ? S(210) : S(150));
+            _chkDisableUpdates.Size = new Size(Math.Min(availableWidth - S(40), S(360)), S(28));
 
-            _resultCard.Location = new Point(contentLeft, _settingsCard.Bottom + 18);
-            bool stackButton = availableWidth < 720;
-            int resultHeight = Math.Max(stackButton ? 292 : 246, viewportHeight - _resultCard.Top - 24);
+            _resultCard.Location = new Point(contentLeft, _settingsCard.Bottom + S(18));
+            bool stackButton = availableWidth < 820;
+            _btnApply.Size = WorkbenchUi.ScaleSize(new Size(138, 42), scale);
+            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top, stackButton ? 292 : 276, 430, scale);
             _resultCard.Size = new Size(availableWidth, resultHeight);
-            _lblResultStatus.Location = new Point(availableWidth - 186, 16);
-            _lblResultStatus.Size = new Size(166, 28);
-            _resultHost.Location = new Point(20, 50);
-            int buttonTop = _resultCard.Height - _btnApply.Height - 20;
-            _resultHost.Size = new Size(availableWidth - 40, Math.Max(144, buttonTop - _resultHost.Top - 16));
-            _txtResult.Location = new Point(12, 12);
-            _txtResult.Size = new Size(_resultHost.Width - 24, _resultHost.Height - 24);
+            _lblResultTitle.Location = new Point(S(20), S(14));
+            _lblResultTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblResultStatus.Location = new Point(availableWidth - S(186), S(16));
+            _lblResultStatus.Size = new Size(S(166), S(28));
+            _resultHost.Location = new Point(S(20), S(50));
+            int buttonTop = _resultCard.Height - _btnApply.Height - S(20);
+            _resultHost.Size = new Size(availableWidth - S(40), Math.Max(S(144), buttonTop - _resultHost.Top - S(16)));
+            _txtResult.Location = new Point(S(12), S(12));
+            _txtResult.Size = new Size(_resultHost.Width - S(24), _resultHost.Height - S(24));
             _btnApply.Location = stackButton
-                ? new Point(20, buttonTop)
-                : new Point(availableWidth - _btnApply.Width - 20, buttonTop);
+                ? new Point(S(20), buttonTop)
+                : new Point(availableWidth - _btnApply.Width - S(20), buttonTop);
 
-            AutoScrollMinSize = new Size(0, _resultCard.Bottom + 24);
+            AutoScrollMinSize = new Size(0, _resultCard.Bottom + S(24));
         }
 
         private async Task LoadVersionsAsync()

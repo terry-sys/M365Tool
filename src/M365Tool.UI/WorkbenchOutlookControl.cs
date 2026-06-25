@@ -222,22 +222,27 @@ namespace Office365CleanupTool
                 return;
             }
 
-            const int gap = 18;
             int viewportWidth = _scrollHost.ClientSize.Width;
             int viewportHeight = _scrollHost.ClientSize.Height;
+            float scale = WorkbenchUi.GetAdaptiveUiScale(viewportWidth, viewportHeight);
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
+            WorkbenchUi.ApplyAdaptiveFonts(_contentPanel, scale);
+
+            int gap = S(18);
             int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
             int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
                 viewportWidth,
                 560,
                 WorkbenchUi.DefaultContentMaxWidth,
                 margin,
-                scrollbarAllowance: 4);
+                scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
             int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
             int columns = availableWidth >= 980 ? 3 : availableWidth >= 680 ? 2 : 1;
             int cardWidth = (availableWidth - gap * (columns - 1)) / columns;
-            int cardHeight = 160;
-            _cardsHost.Location = new Point(contentLeft, 18);
+            int cardHeight = S(176);
+            _cardsHost.Location = new Point(contentLeft, S(18));
             int rows = (int)Math.Ceiling(_cardsHost.Controls.Count / (double)columns);
             _cardsHost.Size = new Size(availableWidth, rows * cardHeight + (rows - 1) * gap);
 
@@ -248,30 +253,34 @@ namespace Office365CleanupTool
                 int column = i % columns;
                 card.Location = new Point(column * (cardWidth + gap), row * (cardHeight + gap));
                 card.Size = new Size(cardWidth, cardHeight);
+                WorkbenchUi.LayoutActionCard((Panel)card, scale);
             }
 
-            _logCard.Location = new Point(contentLeft, _cardsHost.Bottom + 20);
-            bool logStacked = availableWidth < 760;
-            _logCard.Size = new Size(availableWidth, logStacked ? 134 : 108);
-            _lblLogStatus.Location = new Point(availableWidth - 152, 16);
-            _lblLogStatus.Size = new Size(132, 28);
-            _lblLastLogPath.Size = new Size(logStacked ? availableWidth - 40 : Math.Max(320, _logCard.Width - 200), 36);
-            _btnOpenLogFolder.Location = logStacked
-                ? new Point(20, 82)
-                : new Point(_logCard.Width - _btnOpenLogFolder.Width - 20, 34);
+            _logCard.Location = new Point(contentLeft, _cardsHost.Bottom + S(20));
+            _logCard.Size = new Size(availableWidth, S(128));
+            _lblLogTitle.Location = new Point(S(20), S(14));
+            _lblLogTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblLogStatus.Location = new Point(availableWidth - S(152), S(16));
+            _lblLogStatus.Size = new Size(S(132), S(28));
+            _lblLastLogPath.Location = new Point(S(20), S(42));
+            _lblLastLogPath.Size = new Size(availableWidth - S(40), S(36));
+            _btnOpenLogFolder.Size = WorkbenchUi.ScaleSize(new Size(146, 42), scale);
+            _btnOpenLogFolder.Location = new Point(S(20), S(76));
 
-            _resultCard.Location = new Point(contentLeft, _logCard.Bottom + 18);
-            int resultHeight = Math.Max(252, viewportHeight - _resultCard.Top - 24);
+            _resultCard.Location = new Point(contentLeft, _logCard.Bottom + S(18));
+            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top, 252, 430, scale);
             _resultCard.Size = new Size(availableWidth, resultHeight);
-            _lblResultStatus.Location = new Point(availableWidth - 168, 16);
-            _lblResultStatus.Size = new Size(148, 28);
-            _resultHost.Location = new Point(20, 50);
-            _resultHost.Size = new Size(_resultCard.Width - 40, _resultCard.Height - 70);
-            _txtResult.Location = new Point(12, 12);
-            _txtResult.Size = new Size(_resultHost.Width - 24, _resultHost.Height - 24);
+            _lblResultTitle.Location = new Point(S(20), S(14));
+            _lblResultTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblResultStatus.Location = new Point(availableWidth - S(168), S(16));
+            _lblResultStatus.Size = new Size(S(148), S(28));
+            _resultHost.Location = new Point(S(20), S(50));
+            _resultHost.Size = new Size(_resultCard.Width - S(40), _resultCard.Height - S(70));
+            _txtResult.Location = new Point(S(12), S(12));
+            _txtResult.Size = new Size(_resultHost.Width - S(24), _resultHost.Height - S(24));
 
             _contentPanel.Width = Math.Max(10, viewportWidth - 1);
-            _contentPanel.Height = _resultCard.Bottom + 24;
+            _contentPanel.Height = _resultCard.Bottom + S(24);
         }
 
         private async void btnFullScan_Click(object? sender, EventArgs e)

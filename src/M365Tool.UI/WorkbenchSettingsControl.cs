@@ -299,76 +299,111 @@ namespace Office365CleanupTool
             }
 
             int viewportWidth = _scrollHost.ClientSize.Width;
+            int viewportHeight = _scrollHost.ClientSize.Height;
+            float scale = WorkbenchUi.GetAdaptiveUiScale(viewportWidth, viewportHeight);
+            int S(int value) => WorkbenchUi.Scale(value, scale);
+
+            WorkbenchUi.ApplyAdaptiveFonts(_contentPanel, scale);
+
             int margin = WorkbenchUi.GetAdaptivePageMargin(viewportWidth);
             int availableWidth = WorkbenchUi.GetAdaptiveContentWidth(
                 viewportWidth,
                 560,
                 WorkbenchUi.ReadingContentMaxWidth,
-                margin);
+                margin,
+                scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
             int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
 
-            _settingsCard.Location = new Point(contentLeft, 18);
-            _settingsCard.Size = new Size(availableWidth, 246);
-            _lblLanguageHint.Size = new Size(Math.Min(availableWidth - 180, 460), 18);
-            _btnSave.Location = new Point(20, _settingsCard.Height - _btnSave.Height - 20);
+            _settingsCard.Location = new Point(contentLeft, S(18));
+            _settingsCard.Size = new Size(availableWidth, S(246));
+            _lblLanguageTitle.Location = new Point(S(20), S(16));
+            _lblLanguageTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblLanguageHint.Location = new Point(S(20), S(44));
+            _lblLanguageHint.Size = new Size(Math.Min(availableWidth - S(180), S(520)), S(22));
+            _lblLanguageMode.Location = new Point(S(20), S(68));
+            _lblLanguageMode.Size = new Size(S(180), S(24));
+            _cboLanguageMode.Location = new Point(S(20), S(96));
+            _cboLanguageMode.Size = new Size(Math.Min(S(280), availableWidth - S(40)), S(32));
+            _lblCurrentLanguage.Location = new Point(S(20), S(138));
+            _lblCurrentLanguage.Size = new Size(availableWidth - S(40), S(26));
+            _lblValidationState.Location = new Point(S(20), S(170));
+            _lblValidationState.Size = new Size(S(220), S(30));
+            _btnSave.Size = WorkbenchUi.ScaleSize(new Size(152, 42), scale);
+            _btnSave.Location = new Point(S(20), _settingsCard.Height - _btnSave.Height - S(20));
 
             bool stackSupport = availableWidth < 860;
-            int qrSize = stackSupport ? 170 : 172;
-            int supportHeight = stackSupport ? 558 : 304;
-            _supportCard.Location = new Point(contentLeft, _settingsCard.Bottom + 18);
+            int qrSize = stackSupport ? S(170) : S(172);
+            int supportHeight = stackSupport ? S(558) : S(304);
+            _supportCard.Location = new Point(contentLeft, _settingsCard.Bottom + S(18));
             _supportCard.Size = new Size(availableWidth, supportHeight);
-            _lblSupportTag.Location = new Point(availableWidth - _lblSupportTag.Width - 20, 16);
+            _lblSupportTitle.Location = new Point(S(20), S(16));
+            _lblSupportTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblSupportTag.Size = new Size(S(104), S(22));
+            _lblSupportTag.Location = new Point(availableWidth - _lblSupportTag.Width - S(20), S(16));
 
             if (stackSupport)
             {
-                _lblSupportSummary.Size = new Size(availableWidth - 40, 48);
-                _supportActionsPanel.Location = new Point(20, 104);
-                _supportActionsPanel.Size = new Size(availableWidth - 40, 132);
-                _lblSupportActions.Size = new Size(_supportActionsPanel.Width - 32, 84);
-                _qrPanel.Location = new Point((availableWidth - 248) / 2, 250);
-                _qrPanel.Size = new Size(248, 248);
-                _picSupportQr.Location = new Point((_qrPanel.Width - qrSize) / 2, 18);
+                _lblSupportSummary.Location = new Point(S(20), S(48));
+                _lblSupportSummary.Size = new Size(availableWidth - S(40), S(52));
+                _supportActionsPanel.Location = new Point(S(20), S(104));
+                _supportActionsPanel.Size = new Size(availableWidth - S(40), S(132));
+                _lblSupportActionsCaption.Location = new Point(S(16), S(12));
+                _lblSupportActionsCaption.Size = new Size(_supportActionsPanel.Width - S(32), S(24));
+                _lblSupportActions.Location = new Point(S(16), S(40));
+                _lblSupportActions.Size = new Size(_supportActionsPanel.Width - S(32), S(84));
+                _qrPanel.Location = new Point((availableWidth - S(248)) / 2, S(250));
+                _qrPanel.Size = new Size(S(248), S(248));
+                _picSupportQr.Location = new Point((_qrPanel.Width - qrSize) / 2, S(18));
                 _picSupportQr.Size = new Size(qrSize, qrSize);
-                _btnOpenQr.Location = new Point((_qrPanel.Width - _btnOpenQr.Width) / 2, _picSupportQr.Bottom + 12);
-                _lblSupportHint.Location = new Point(20, _qrPanel.Bottom + 10);
-                _lblSupportHint.Size = new Size(availableWidth - 40, 36);
+                _btnOpenQr.Size = WorkbenchUi.ScaleSize(new Size(132, 38), scale);
+                _btnOpenQr.Location = new Point((_qrPanel.Width - _btnOpenQr.Width) / 2, _picSupportQr.Bottom + S(12));
+                _lblSupportHint.Location = new Point(S(20), _qrPanel.Bottom + S(10));
+                _lblSupportHint.Size = new Size(availableWidth - S(40), S(40));
             }
             else
             {
-                int qrPanelWidth = 236;
-                int textWidth = availableWidth - qrPanelWidth - 76;
-                _lblSupportSummary.Size = new Size(textWidth, 48);
-                _supportActionsPanel.Location = new Point(20, 104);
-                _supportActionsPanel.Size = new Size(textWidth, 132);
-                _lblSupportActions.Size = new Size(_supportActionsPanel.Width - 32, 84);
-                _lblSupportHint.Location = new Point(20, 246);
-                _lblSupportHint.Size = new Size(textWidth, 36);
-                _qrPanel.Location = new Point(availableWidth - qrPanelWidth - 20, 28);
-                _qrPanel.Size = new Size(qrPanelWidth, 248);
-                _picSupportQr.Location = new Point((_qrPanel.Width - qrSize) / 2, 18);
+                int qrPanelWidth = S(236);
+                int textWidth = availableWidth - qrPanelWidth - S(76);
+                _lblSupportSummary.Location = new Point(S(20), S(48));
+                _lblSupportSummary.Size = new Size(textWidth, S(48));
+                _supportActionsPanel.Location = new Point(S(20), S(104));
+                _supportActionsPanel.Size = new Size(textWidth, S(132));
+                _lblSupportActionsCaption.Location = new Point(S(16), S(12));
+                _lblSupportActionsCaption.Size = new Size(_supportActionsPanel.Width - S(32), S(24));
+                _lblSupportActions.Location = new Point(S(16), S(40));
+                _lblSupportActions.Size = new Size(_supportActionsPanel.Width - S(32), S(84));
+                _lblSupportHint.Location = new Point(S(20), S(246));
+                _lblSupportHint.Size = new Size(textWidth, S(40));
+                _qrPanel.Location = new Point(availableWidth - qrPanelWidth - S(20), S(28));
+                _qrPanel.Size = new Size(qrPanelWidth, S(248));
+                _picSupportQr.Location = new Point((_qrPanel.Width - qrSize) / 2, S(18));
                 _picSupportQr.Size = new Size(qrSize, qrSize);
-                _btnOpenQr.Location = new Point((_qrPanel.Width - _btnOpenQr.Width) / 2, _picSupportQr.Bottom + 12);
+                _btnOpenQr.Size = WorkbenchUi.ScaleSize(new Size(132, 38), scale);
+                _btnOpenQr.Location = new Point((_qrPanel.Width - _btnOpenQr.Width) / 2, _picSupportQr.Bottom + S(12));
             }
 
-            int privacyHeight = stackSupport ? 420 : 360;
-            _privacyCard.Location = new Point(contentLeft, _supportCard.Bottom + 18);
+            int privacyHeight = stackSupport ? S(420) : S(360);
+            _privacyCard.Location = new Point(contentLeft, _supportCard.Bottom + S(18));
             _privacyCard.Size = new Size(availableWidth, privacyHeight);
-            _lblPrivacySummary.Size = new Size(availableWidth - 40, 44);
-            SizePrivacyPolicyButton(availableWidth - 40);
-            _btnOpenPrivacyPolicy.Location = new Point(20, 106);
-            int privacyContentTop = _btnOpenPrivacyPolicy.Bottom + 22;
-            _lblPrivacyContent.Location = new Point(20, privacyContentTop);
-            _lblPrivacyContent.Size = new Size(availableWidth - 40, privacyHeight - privacyContentTop - 24);
+            _lblPrivacyTitle.Location = new Point(S(20), S(16));
+            _lblPrivacyTitle.Size = new Size(availableWidth - S(40), S(28));
+            _lblPrivacySummary.Location = new Point(S(20), S(48));
+            _lblPrivacySummary.Size = new Size(availableWidth - S(40), S(48));
+            SizePrivacyPolicyButton(availableWidth - S(40), scale);
+            _btnOpenPrivacyPolicy.Location = new Point(S(20), S(106));
+            int privacyContentTop = _btnOpenPrivacyPolicy.Bottom + S(22);
+            _lblPrivacyContent.Location = new Point(S(20), privacyContentTop);
+            _lblPrivacyContent.Size = new Size(availableWidth - S(40), privacyHeight - privacyContentTop - S(24));
 
             _contentPanel.Width = Math.Max(10, viewportWidth - 1);
-            _contentPanel.Height = _privacyCard.Bottom + 24;
+            _contentPanel.Height = _privacyCard.Bottom + S(24);
         }
 
-        private void SizePrivacyPolicyButton(int maxWidth)
+        private void SizePrivacyPolicyButton(int maxWidth, float scale)
         {
-            int measuredWidth = TextRenderer.MeasureText(_btnOpenPrivacyPolicy.Text, _btnOpenPrivacyPolicy.Font).Width + 44;
-            int buttonWidth = Math.Min(Math.Max(220, measuredWidth), Math.Max(160, maxWidth));
-            _btnOpenPrivacyPolicy.Size = new Size(buttonWidth, 44);
+            int measuredWidth = TextRenderer.MeasureText(_btnOpenPrivacyPolicy.Text, _btnOpenPrivacyPolicy.Font).Width + WorkbenchUi.Scale(44, scale);
+            int buttonWidth = Math.Min(Math.Max(WorkbenchUi.Scale(220, scale), measuredWidth), Math.Max(WorkbenchUi.Scale(160, scale), maxWidth));
+            _btnOpenPrivacyPolicy.Size = new Size(buttonWidth, WorkbenchUi.Scale(44, scale));
         }
 
         private void BindLanguageModeOptions()
