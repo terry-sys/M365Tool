@@ -115,7 +115,7 @@ namespace Office365CleanupTool
             int preferredButtonTop = card.Height - buttonBottom - buttonHeight;
             int maxButtonTop = Math.Max(descriptionTop + Scale(34, scale), card.Height - Scale(14, scale) - buttonHeight);
             int buttonTop = Math.Min(Math.Max(minimumButtonTop, preferredButtonTop), maxButtonTop);
-            int descriptionHeight = Math.Max(0, buttonTop - descriptionTop - Scale(10, scale));
+            int descriptionHeight = Math.Max(0, buttonTop - descriptionTop - Scale(6, scale));
 
             labels[0].Location = new Point(sidePadding, titleTop);
             labels[0].Size = new Size(Math.Max(80, card.Width - sidePadding * 2), titleHeight);
@@ -144,7 +144,7 @@ namespace Office365CleanupTool
                 FlatStyle = FlatStyle.Flat;
                 FlatAppearance.BorderSize = 0;
                 UseVisualStyleBackColor = false;
-                TabStop = false;
+                TabStop = true;
             }
 
             protected override void OnMouseEnter(EventArgs e)
@@ -208,6 +208,11 @@ namespace Office365CleanupTool
                     rect,
                     textColor,
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+
+                if (Focused && ShowFocusCues)
+                {
+                    ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(rect, -4, -4), textColor, backColor);
+                }
             }
 
             private Color ResolveParentBackColor()
@@ -227,21 +232,21 @@ namespace Office365CleanupTool
             }
         }
 
-        public static Color PrimaryColor => Color.FromArgb(24, 119, 242);
-        public static Color PrimaryHoverColor => Color.FromArgb(18, 103, 220);
-        public static Color PrimaryPressedColor => Color.FromArgb(14, 86, 194);
-        public static Color PrimaryTextColor => Color.FromArgb(28, 43, 64);
-        public static Color SecondaryTextColor => Color.FromArgb(86, 105, 130);
-        public static Color TertiaryTextColor => Color.FromArgb(126, 145, 170);
-        public static Color CanvasColor => Color.White;
-        public static Color PageSurfaceColor => Color.White;
-        public static Color SidebarBackgroundColor => Color.White;
-        public static Color SidebarNavSurfaceColor => Color.White;
-        public static Color CardBorderColor => Color.FromArgb(231, 240, 250);
-        public static Color ControlBorderColor => Color.FromArgb(225, 236, 249);
-        public static Color MutedSurfaceColor => Color.FromArgb(247, 251, 255);
-        public static Color InsetSurfaceColor => Color.FromArgb(250, 253, 255);
-        public static Color NavigationSelectedColor => Color.FromArgb(255, 255, 255);
+        public static Color PrimaryColor => Color.FromArgb(49, 94, 231);
+        public static Color PrimaryHoverColor => Color.FromArgb(36, 76, 199);
+        public static Color PrimaryPressedColor => Color.FromArgb(29, 62, 165);
+        public static Color PrimaryTextColor => Color.FromArgb(29, 41, 57);
+        public static Color SecondaryTextColor => Color.FromArgb(102, 112, 133);
+        public static Color TertiaryTextColor => Color.FromArgb(122, 134, 153);
+        public static Color CanvasColor => Color.FromArgb(246, 248, 251);
+        public static Color PageSurfaceColor => Color.FromArgb(246, 248, 251);
+        public static Color SidebarBackgroundColor => Color.FromArgb(252, 252, 253);
+        public static Color SidebarNavSurfaceColor => Color.FromArgb(252, 252, 253);
+        public static Color CardBorderColor => Color.FromArgb(229, 233, 240);
+        public static Color ControlBorderColor => Color.FromArgb(221, 227, 236);
+        public static Color MutedSurfaceColor => Color.FromArgb(248, 250, 252);
+        public static Color InsetSurfaceColor => Color.FromArgb(250, 251, 253);
+        public static Color NavigationSelectedColor => Color.FromArgb(233, 240, 255);
         public static Color DisabledSurfaceColor => Color.FromArgb(243, 245, 248);
         public static Color DisabledBorderColor => Color.FromArgb(226, 232, 240);
         public static Color SuccessColor => Color.FromArgb(31, 122, 77);
@@ -288,12 +293,12 @@ namespace Office365CleanupTool
 
         public static Panel CreateCard(Point location, Size size, Color? backColor = null)
         {
-            return CreateSurfacePanel(location, size, backColor ?? Color.White, CardBorderColor, 26);
+            return CreateSurfacePanel(location, size, backColor ?? Color.White, CardBorderColor, 10);
         }
 
         public static Panel CreateInsetPanel(Point location, Size size)
         {
-            return CreateSurfacePanel(location, size, InsetSurfaceColor, ControlBorderColor, 22);
+            return CreateSurfacePanel(location, size, InsetSurfaceColor, ControlBorderColor, 8);
         }
 
         public static GroupBox CreateGroup(string title, Point location, Size size)
@@ -328,7 +333,7 @@ namespace Office365CleanupTool
             {
                 Text = text,
                 Font = WorkbenchUi.CreateUiFont(9F, FontStyle.Bold),
-                ForeColor = TertiaryTextColor,
+                ForeColor = SecondaryTextColor,
                 BackColor = Color.Transparent,
                 Location = location,
                 Size = new Size(width, 24),
@@ -359,8 +364,8 @@ namespace Office365CleanupTool
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Font = WorkbenchUi.CreateUiFont(9.75F),
                 ForeColor = PrimaryTextColor,
-                BackColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(248, 250, 253),
+                FlatStyle = FlatStyle.Standard,
                 Location = location,
                 Size = size
             };
@@ -393,7 +398,7 @@ namespace Office365CleanupTool
                 ScrollBars = ScrollBars.Vertical,
                 Size = size,
                 Text = text,
-                TabStop = false
+                TabStop = true
             };
         }
 
@@ -455,7 +460,7 @@ namespace Office365CleanupTool
                     MouseDownBackColor = Color.FromArgb(128, 20, 20)
                 },
                 UseVisualStyleBackColor = false,
-                TabStop = false,
+                TabStop = true,
                 UseMnemonic = false
             };
 
@@ -659,50 +664,47 @@ namespace Office365CleanupTool
             UpdateRegion();
         }
 
-        private static Panel CreateSurfacePanel(Point location, Size size, Color backColor, Color borderColor, int radius)
+        private sealed class SurfacePanel : Panel
         {
-            var panel = new Panel
+            public int CornerRadius { get; init; }
+            public Color BorderColor { get; init; }
+            public SurfacePanel()
             {
-                Location = location,
-                Size = size,
-                BackColor = backColor,
-                BorderStyle = BorderStyle.None,
-                Margin = Padding.Empty
-            };
-
-            void UpdateCardRegion()
-            {
-                if (panel.Width <= 1 || panel.Height <= 1)
-                {
-                    return;
-                }
-
-                using GraphicsPath path = BuildRoundedPath(new Rectangle(0, 0, panel.Width, panel.Height), radius);
-                panel.Region = new Region(path);
+                DoubleBuffered = true;
+                SetStyle(ControlStyles.ResizeRedraw, true);
             }
-
-            panel.SizeChanged += (_, _) =>
+            protected override void OnPaintBackground(PaintEventArgs e)
             {
-                UpdateCardRegion();
-                panel.Invalidate();
-            };
-
-            panel.Paint += (_, e) =>
-            {
+                Control? parent = Parent;
+                while (parent != null && parent.BackColor.A == 0) parent = parent.Parent;
+                e.Graphics.Clear(parent?.BackColor ?? CanvasColor);
+                if (Width <= 1 || Height <= 1) return;
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using GraphicsPath shadowPath = BuildRoundedPath(new Rectangle(0, 2, panel.Width - 1, panel.Height - 3), radius);
-                using var shadowBrush = new SolidBrush(Color.FromArgb(10, 38, 63, 105));
-                e.Graphics.FillPath(shadowBrush, shadowPath);
-                using GraphicsPath path = BuildRoundedPath(new Rectangle(0, 0, panel.Width - 1, panel.Height - 1), radius);
-                using var pen = new Pen(borderColor);
-                e.Graphics.DrawPath(pen, path);
-            };
-
-            UpdateCardRegion();
-            return panel;
+                using var path = BuildRoundedPath(new Rectangle(0, 0, Width - 1, Height - 1), CornerRadius);
+                using var fill = new SolidBrush(BackColor);
+                e.Graphics.FillPath(fill, path);
+            }
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                if (Width > 1 && Height > 1)
+                {
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    using var path = BuildRoundedPath(new Rectangle(0, 0, Width - 1, Height - 1), CornerRadius);
+                    using var pen = new Pen(BorderColor);
+                    e.Graphics.DrawPath(pen, path);
+                }
+                base.OnPaint(e);
+            }
         }
 
-        private static GraphicsPath BuildRoundedPath(Rectangle rect, int radius)
+        private static Panel CreateSurfacePanel(Point location, Size size, Color backColor, Color borderColor, int radius) =>
+            new SurfacePanel
+            {
+                Location = location, Size = size, BackColor = backColor, BorderColor = borderColor,
+                CornerRadius = radius, BorderStyle = BorderStyle.None, Margin = Padding.Empty
+            };
+
+        internal static GraphicsPath BuildRoundedPath(Rectangle rect, int radius)
         {
             int r = Math.Max(1, radius);
             int d = r * 2;

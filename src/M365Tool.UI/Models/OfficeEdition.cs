@@ -14,8 +14,9 @@ namespace Office365CleanupTool.Models
 
     public enum UpdateChannel
     {
-        Monthly,
-        Broad
+        Monthly = 0, // Legacy enum name for Current Channel.
+        Broad = 1,   // Preserve the existing SemiAnnual value.
+        MonthlyEnterprise = 2
     }
 
     public class OfficeVersionInfo
@@ -47,13 +48,19 @@ namespace Office365CleanupTool.Models
 
             string editionName = edition == OfficeEdition.Business ? "Business" : "Enterprise";
             string archName = architecture == OfficeArchitecture.x64 ? "64" : "32";
-            string channelName = channel == UpdateChannel.Monthly ? "Current" : "Broad";
+            string channelName = channel switch
+            {
+                UpdateChannel.Monthly => "Current",
+                UpdateChannel.Broad => "Broad",
+                UpdateChannel.MonthlyEnterprise => "MonthlyEnterprise",
+                _ => throw new System.ArgumentOutOfRangeException(nameof(channel))
+            };
 
             ScriptFileName = $"{editionName}{channelName}{archName}.ps1";
 
             string editionDisplay = edition == OfficeEdition.Business ? "商业版" : "企业版";
             string archDisplay = architecture == OfficeArchitecture.x64 ? "64位" : "32位";
-            string channelDisplay = channel == UpdateChannel.Monthly ? "当前频道" : "半年频道";
+            string channelDisplay = Services.OfficeChannelService.GetChannelDisplayName(channel);
 
             Name = $"{editionDisplay} {archDisplay} {channelDisplay}";
             Description = $"Microsoft 365 Apps {editionDisplay} ({archDisplay}) - {channelDisplay}";

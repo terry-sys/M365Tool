@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Threading;
 using Office365CleanupTool.Models;
 using Office365CleanupTool.Services;
 
@@ -30,6 +32,9 @@ namespace Office365CleanupTool
         private readonly Label _lblResultTitle;
         private readonly Label _lblDetectedStatus;
         private readonly ComboBox _cboTarget;
+        private readonly ComboBox _cboEngine;
+        private readonly CheckBox _chkForceClose;
+        private CancellationTokenSource? _cancellation;
         private readonly Label _lblDescription;
         private readonly TextBox _txtDetectedOffice;
         private readonly TextBox _txtResult;
@@ -37,6 +42,7 @@ namespace Office365CleanupTool
         private readonly Button _btnStartUninstall;
 
         private bool _isRunning;
+        private bool _rebindingControls;
         private int _detectedPreferredHeight = 170;
         private string _lastLogDirectory = string.Empty;
         private UiLanguage _language;
@@ -58,6 +64,12 @@ namespace Office365CleanupTool
             _targetCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
             _lblTargetTitle = WorkbenchUi.CreateSectionTitle(string.Empty, new Point(20, 14));
             _cboTarget = WorkbenchUi.CreateComboBox(Point.Empty, new Size(420, 32));
+            _cboEngine = WorkbenchUi.CreateComboBox(Point.Empty, new Size(420, 32));
+            _chkForceClose = new CheckBox { Font = WorkbenchUi.CreateUiFont(9F), AutoSize = false, BackColor = Color.Transparent, ForeColor = WorkbenchUi.PrimaryTextColor };
+            _cboEngine.SelectedIndexChanged += (_, _) =>
+            {
+                if (!_rebindingControls) RefreshDetectedOffice();
+            };
             _lblDescription = new Label
             {
                 Font = WorkbenchUi.CreateUiFont(9.5F),
@@ -65,7 +77,7 @@ namespace Office365CleanupTool
                 BackColor = Color.Transparent,
                 UseMnemonic = false
             };
-            _targetCard.Controls.AddRange(new Control[] { _lblTargetTitle, _cboTarget, _lblDescription });
+            _targetCard.Controls.AddRange(new Control[] { _lblTargetTitle, _cboEngine, _cboTarget, _chkForceClose, _lblDescription });
 
             _detectedCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
             _lblDetectedTitle = WorkbenchUi.CreateSectionTitle(string.Empty, new Point(20, 14));
@@ -96,7 +108,11 @@ namespace Office365CleanupTool
 
             Controls.AddRange(new Control[] { _lblTitle, _lblDescriptionTitle, _targetCard, _detectedCard, _resultCard });
 
-            _cboTarget.SelectedIndexChanged += (_, _) => UpdateTargetDescription();
+            _cboTarget.SelectedIndexChanged += (_, _) =>
+            {
+                UpdateTargetDescription();
+                UpdateUiState();
+            };
 
             Resize += (_, _) => LayoutControls();
             Scroll += (_, _) => CloseAllDropDowns();
@@ -112,7 +128,6 @@ namespace Office365CleanupTool
 
             ApplyLanguage(_language);
             LayoutControls();
-            RefreshDetectedOffice();
             UpdateUiState();
         }
 
@@ -123,24 +138,34 @@ namespace Office365CleanupTool
             _lblTitle.Visible = false;
             _lblDescriptionTitle.Text = string.Empty;
             _lblDescriptionTitle.Visible = false;
-            _lblTargetTitle.Text = T("卸载目标", "Uninstall Target");
+            _lblTargetTitle.Text = T("卸载方式与目标", "Uninstall Method and Target");
+            int engineIndex = Math.Max(0, _cboEngine.SelectedIndex);
+            _rebindingControls = true;
+            try
+            {
+                _cboEngine.Items.Clear();
+                _cboEngine.Items.Add(T("常规卸载（ODT，仅 C2R）", "Standard uninstall (ODT, C2R only)"));
+                _cboEngine.Items.Add(T("深度清理（Get Help，含 MSI）", "Deep cleanup (Get Help, includes MSI)"));
+                _cboEngine.SelectedIndex = engineIndex;
+            }
+            finally { _rebindingControls = false; }
+            _chkForceClose.Text = T("允许强制关闭 Office（未保存内容可能丢失）", "Allow force closing Office (unsaved work may be lost)");
             _lblDetectedTitle.Text = T("当前检测到的 Office", "Detected Office");
             _lblResultTitle.Text = T("处理结果", "Results");
             _btnOpenLogs.Text = T("打开日志目录", "Open Log");
             _btnStartUninstall.Text = T("开始卸载", "Start Uninstall");
 
             if (string.IsNullOrWhiteSpace(_txtResult.Text) ||
-                _txtResult.Text.Contains("查看卸载结果", StringComparison.OrdinalIgnoreCase) ||
-                _txtResult.Text.Contains("View uninstall results", StringComparison.OrdinalIgnoreCase))
+                _txtResult.Text == "可以在这里查看卸载结果、返回码、进程处理摘要和下一步建议。" ||
+                _txtResult.Text == "View uninstall results, return code, process summary and next-step suggestions here.")
             {
                 _txtResult.Text = T(
                     "可以在这里查看卸载结果、返回码、进程处理摘要和下一步建议。",
                     "View uninstall results, return code, process summary and next-step suggestions here.");
             }
 
-            RebuildTargets();
-            UpdateTargetDescription();
             RefreshDetectedOffice();
+            UpdateUiState();
         }
 
         public void PrepareForDisplay()
@@ -150,16 +175,18 @@ namespace Office365CleanupTool
                 AutoScrollPosition = new Point(0, 0);
             }
 
-            LayoutControls();
+            if (!_isRunning) RefreshDetectedOffice();
+            else LayoutControls();
         }
 
-        private void RebuildTargets()
+        private void RebuildTargets(IReadOnlyList<InstalledOfficeInfo> installedOffice)
         {
             string? selectedKey = (_cboTarget.SelectedItem as TargetOptionView)?.Raw.SaraOfficeVersion ?? "__AUTO__";
             _cboTarget.BeginUpdate();
             _cboTarget.Items.Clear();
 
-            foreach (OfficeUninstallTargetOption option in _officeUninstallService.GetSupportedTargets(_language))
+            foreach (OfficeUninstallTargetOption option in _officeUninstallService.GetAvailableTargets(
+                _cboEngine.SelectedIndex == 0 ? OfficeUninstallMode.Standard : OfficeUninstallMode.DeepCleanup, installedOffice, _language))
             {
                 _cboTarget.Items.Add(new TargetOptionView
                 {
@@ -188,6 +215,8 @@ namespace Office365CleanupTool
             }
 
             _cboTarget.EndUpdate();
+            UpdateTargetDescription();
+            UpdateUiState();
         }
 
         private void LayoutControls()
@@ -206,15 +235,20 @@ namespace Office365CleanupTool
                 WorkbenchUi.DefaultContentMaxWidth,
                 margin,
                 scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
-            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
+            Point scrollOffset = AutoScrollPosition;
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin) + scrollOffset.X;
 
-            _targetCard.Location = new Point(contentLeft, S(18));
-            _targetCard.Size = new Size(availableWidth, S(162));
+            _targetCard.Location = new Point(contentLeft, S(18) + scrollOffset.Y);
+            _targetCard.Size = new Size(availableWidth, S(224));
             _lblTargetTitle.Location = new Point(S(20), S(14));
             _lblTargetTitle.Size = new Size(availableWidth - S(40), S(28));
-            _cboTarget.Location = new Point(S(20), S(46));
+            _cboEngine.Location = new Point(S(20), S(46));
+            _cboEngine.Size = new Size(availableWidth - S(40), S(32));
+            _cboTarget.Location = new Point(S(20), S(88));
             _cboTarget.Size = new Size(Math.Min(S(420), availableWidth - S(40)), S(32));
-            _lblDescription.Location = new Point(S(20), S(88));
+            _chkForceClose.Location = new Point(S(20), S(126));
+            _chkForceClose.Size = new Size(availableWidth - S(40), S(28));
+            _lblDescription.Location = new Point(S(20), S(158));
             _lblDescription.Size = new Size(availableWidth - S(40), S(54));
 
             _detectedCard.Location = new Point(contentLeft, _targetCard.Bottom + S(18));
@@ -229,7 +263,7 @@ namespace Office365CleanupTool
             _txtDetectedOffice.Size = new Size(_detectedHost.Width - S(24), _detectedHost.Height - S(24));
 
             _resultCard.Location = new Point(contentLeft, _detectedCard.Bottom + S(18));
-            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top, 304, 450, scale);
+            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top - scrollOffset.Y, 304, 450, scale);
             _resultCard.Size = new Size(availableWidth, resultHeight);
             _lblResultTitle.Location = new Point(S(20), S(14));
             _lblResultTitle.Size = new Size(availableWidth - S(40), S(28));
@@ -249,7 +283,7 @@ namespace Office365CleanupTool
                 _btnOpenLogs.Location = new Point(S(20) + _btnStartUninstall.Width + S(10), buttonTop);
             }
 
-            AutoScrollMinSize = new Size(0, _resultCard.Bottom + S(24));
+            AutoScrollMinSize = new Size(0, _resultCard.Bottom - scrollOffset.Y + S(24));
         }
 
         private void RefreshDetectedOffice()
@@ -270,6 +304,7 @@ namespace Office365CleanupTool
                 _lblDetectedStatus.Text = T($"已检测到 {installedOffice.Count} 项", $"{installedOffice.Count} Items Detected");
             }
 
+            RebuildTargets(installedOffice);
             int lineCount = Math.Max(1, _txtDetectedOffice.Lines.Length);
             _detectedPreferredHeight = Math.Min(360, Math.Max(190, 94 + lineCount * 22));
             LayoutControls();
@@ -277,13 +312,19 @@ namespace Office365CleanupTool
 
         private void UpdateTargetDescription()
         {
-            _lblDescription.Text = (_cboTarget.SelectedItem as TargetOptionView)?.Description ?? string.Empty;
+            _lblDescription.Text = _cboEngine.SelectedIndex == 0
+                ? _cboTarget.SelectedItem is TargetOptionView
+                    ? T("仅移除检测到的 C2R 产品。MSI 或损坏的安装可选择深度清理。取消后，已启动的卸载可能继续运行。", "Removes detected C2R products. Use deep cleanup for MSI or damaged installs. Canceling monitoring may leave uninstall running.")
+                    : T("未检测到可常规卸载的 C2R 产品。MSI 或损坏的安装请选择深度清理。", "No C2R products are available for standard uninstall. Use deep cleanup for MSI or damaged installs.")
+                : (_cboTarget.SelectedItem as TargetOptionView)?.Description ?? string.Empty;
         }
 
         private async void btnStartUninstall_Click(object? sender, EventArgs e)
         {
             if (_isRunning)
             {
+                _cancellation?.Cancel();
+                _btnStartUninstall.Enabled = false;
                 return;
             }
 
@@ -299,8 +340,8 @@ namespace Office365CleanupTool
 
             DialogResult confirm = MessageBox.Show(
                 T(
-                    $"将使用微软官方卸载场景执行：{targetView.Display}\n\n此操作可能关闭 Office 相关进程，并建议在完成后重启电脑。\n\n是否继续？",
-                    $"The official Microsoft uninstall scenario will run for: {targetView.Display}\n\nThis may close Office processes and a restart is recommended after completion.\n\nContinue?"),
+                    $"将执行：{_cboEngine.Text} — {targetView.Display}\n\n请先保存文档。工具准备完成后会尝试关闭 Office；强制关闭：{_chkForceClose.Checked}。取消等待不会强制中止已启动的卸载。\n\n是否继续？",
+                    $"Run: {_cboEngine.Text} — {targetView.Display}\n\nSave your work first. Office will be closed after tools are ready; force close: {_chkForceClose.Checked}. Canceling monitoring will not forcibly stop an uninstall already started.\n\nContinue?"),
                 T("确认卸载", "Confirm Uninstall"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
@@ -312,6 +353,7 @@ namespace Office365CleanupTool
             try
             {
                 _isRunning = true;
+                _cancellation = new CancellationTokenSource();
                 UpdateUiState();
                 WorkbenchUi.ApplyStatusStyle(_lblDetectedStatus, WorkbenchTone.Info);
                 _lblDetectedStatus.Text = T("正在分析目标", "Preparing");
@@ -319,8 +361,10 @@ namespace Office365CleanupTool
 
                 OfficeUninstallResult result = await _officeUninstallService.RunAsync(new OfficeUninstallRequest
                 {
-                    Target = targetView.Raw
-                }, _language);
+                    Target = targetView.Raw,
+                    Mode = _cboEngine.SelectedIndex == 0 ? OfficeUninstallMode.Standard : OfficeUninstallMode.DeepCleanup,
+                    ForceCloseApplications = _chkForceClose.Checked
+                }, _language, _cancellation.Token);
 
                 _lastLogDirectory = result.LogDirectory;
                 WorkbenchUi.ApplyStatusStyle(_lblDetectedStatus, result.IsSuccess ? WorkbenchTone.Success : WorkbenchTone.Warning);
@@ -335,6 +379,12 @@ namespace Office365CleanupTool
                     result.IsSuccess ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
                 RefreshDetectedOffice();
             }
+            catch (OperationCanceledException)
+            {
+                WorkbenchUi.ApplyStatusStyle(_lblDetectedStatus, WorkbenchTone.Warning);
+                _lblDetectedStatus.Text = T("已取消准备或等待", "Canceled");
+                _txtResult.Text = T("已取消准备或等待；已启动的卸载可能仍在后台运行，请确认结束后再重试。", "Preparation or monitoring was canceled. An uninstall already started may still be running; check before retrying.");
+            }
             catch (Exception ex)
             {
                 WorkbenchUi.ApplyStatusStyle(_lblDetectedStatus, WorkbenchTone.Danger);
@@ -348,7 +398,10 @@ namespace Office365CleanupTool
             }
             finally
             {
+                _lastLogDirectory = _officeUninstallService.LastLogDirectory;
                 _isRunning = false;
+                _cancellation?.Dispose();
+                _cancellation = null;
                 UpdateUiState();
             }
         }
@@ -401,8 +454,12 @@ namespace Office365CleanupTool
         private void UpdateUiState()
         {
             bool enabled = !_isRunning;
-            _cboTarget.Enabled = enabled;
-            _btnStartUninstall.Enabled = enabled;
+            bool hasTarget = _cboTarget.SelectedItem is TargetOptionView;
+            _cboTarget.Enabled = enabled && hasTarget;
+            _cboEngine.Enabled = enabled;
+            _chkForceClose.Enabled = enabled && hasTarget;
+            _btnStartUninstall.Enabled = _isRunning ? _cancellation?.IsCancellationRequested == false : hasTarget;
+            _btnStartUninstall.Text = _isRunning ? T("取消/停止等待", "Cancel / Stop Waiting") : T("开始卸载", "Start Uninstall");
             _btnOpenLogs.Enabled = !string.IsNullOrWhiteSpace(_lastLogDirectory);
         }
 
@@ -417,7 +474,9 @@ namespace Office365CleanupTool
             return key switch
             {
                 "__AUTO__" => T("自动检测已安装的 Office", "Auto-detect installed Office"),
-                "All" => T("所有 Office 版本", "All Office Versions"),
+                "All" => _cboEngine.SelectedIndex == 0
+                    ? T("全部已检测到的 C2R 产品", "All detected C2R products")
+                    : T("所有 Office 版本", "All Office Versions"),
                 _ => option.SaraOfficeVersion?.StartsWith("20", StringComparison.OrdinalIgnoreCase) == true
                     ? $"Office {option.SaraOfficeVersion}"
                     : option.SaraOfficeVersion == "M365" ? "Microsoft 365 Apps" : option.DisplayName

@@ -1,6 +1,5 @@
 using System;
 using System.Drawing;
-using System.Windows.Forms;
 
 namespace Office365CleanupTool
 {
@@ -17,17 +16,18 @@ namespace Office365CleanupTool
 
             try
             {
-                string executablePath = Application.ExecutablePath;
-                Icon? extracted = Icon.ExtractAssociatedIcon(executablePath);
-                if (extracted != null)
+                using var stream = typeof(AppIconProvider).Assembly
+                    .GetManifestResourceStream("M365Tool.Assets.AppIcon.ico");
+                if (stream != null)
                 {
-                    _cachedIcon = extracted;
+                    using var icon = new Icon(stream);
+                    _cachedIcon = (Icon)icon.Clone();
                     return _cachedIcon;
                 }
             }
             catch
             {
-                // Ignore extraction failures and let caller fall back to default icon.
+                // Ignore resource loading failures and let caller fall back to default icon.
             }
 
             return null;

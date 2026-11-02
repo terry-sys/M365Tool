@@ -6,6 +6,10 @@ namespace Office365CleanupTool.Models
 
         public string Version { get; set; } = string.Empty;
 
+        public string ProductId { get; set; } = string.Empty;
+
+        public string OfficeVersion { get; set; } = string.Empty;
+
         public string ProductFamily { get; set; } = string.Empty;
 
         public string Source { get; set; } = string.Empty;

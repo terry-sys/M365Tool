@@ -71,7 +71,9 @@ namespace Office365CleanupTool
                 Directory.CreateDirectory(_userDataFolder);
 
                 CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, _userDataFolder);
+                if (IsDisposed || Disposing) return;
                 await _webView.EnsureCoreWebView2Async(env);
+                if (IsDisposed || Disposing) return;
                 _webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 _webView.CoreWebView2.NavigateToString(_html);
                 _statusLabel.Visible = false;
@@ -93,6 +95,7 @@ namespace Office365CleanupTool
 
         private void ShowFallbackText(string text)
         {
+            if (IsDisposed || Disposing) return;
             _statusLabel.Text = text;
             _statusLabel.Visible = true;
             _statusLabel.BringToFront();

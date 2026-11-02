@@ -14,74 +14,102 @@ namespace Office365CleanupTool.Services
                 throw new ArgumentException("FileName cannot be empty.", nameof(request));
             }
 
+            request.CancellationToken.ThrowIfCancellationRequested();
+            using var timeout = new System.Threading.CancellationTokenSource(request.Timeout);
+            using var cancellation = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(
+                request.CancellationToken, timeout.Token);
             var result = new ScriptExecutionResult();
-            var standardOutput = new StringBuilder();
-            var standardError = new StringBuilder();
-
-            using (var process = new Process())
+            var output = new StringBuilder();
+            var error = new StringBuilder();
+            bool observing = true;
+            bool detached = false;
+            var process = new Process();
+            try
             {
-                process.StartInfo.FileName = request.FileName;
-                process.StartInfo.Arguments = request.Arguments;
-                process.StartInfo.UseShellExecute = request.UseShellExecute;
-                process.StartInfo.CreateNoWindow = request.CreateNoWindow;
-                process.StartInfo.WindowStyle = request.WindowStyle;
-
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = request.FileName,
+                    Arguments = request.Arguments,
+                    UseShellExecute = request.UseShellExecute,
+                    CreateNoWindow = request.CreateNoWindow,
+                    WindowStyle = request.WindowStyle,
+                    RedirectStandardOutput = !request.UseShellExecute && request.RedirectStandardOutput,
+                    RedirectStandardError = !request.UseShellExecute && request.RedirectStandardError
+                };
                 if (!string.IsNullOrWhiteSpace(request.WorkingDirectory))
                 {
                     process.StartInfo.WorkingDirectory = request.WorkingDirectory;
                 }
 
-                var canRedirect = !request.UseShellExecute;
-                process.StartInfo.RedirectStandardOutput = canRedirect && request.RedirectStandardOutput;
-                process.StartInfo.RedirectStandardError = canRedirect && request.RedirectStandardError;
-
-                if (process.StartInfo.RedirectStandardOutput)
+                process.OutputDataReceived += (_, e) =>
                 {
-                    process.OutputDataReceived += (_, e) =>
+                    if (e.Data == null) return;
+                    lock (output)
                     {
-                        if (string.IsNullOrEmpty(e.Data))
-                        {
-                            return;
-                        }
-
-                        standardOutput.AppendLine(e.Data);
+                        if (!System.Threading.Volatile.Read(ref observing)) return;
+                        output.AppendLine(e.Data);
                         request.OnOutputDataReceived?.Invoke(e.Data);
-                    };
-                }
-
-                if (process.StartInfo.RedirectStandardError)
+                    }
+                };
+                process.ErrorDataReceived += (_, e) =>
                 {
-                    process.ErrorDataReceived += (_, e) =>
+                    if (e.Data == null) return;
+                    lock (error)
                     {
-                        if (string.IsNullOrEmpty(e.Data))
-                        {
-                            return;
-                        }
-
-                        standardError.AppendLine(e.Data);
+                        if (!System.Threading.Volatile.Read(ref observing)) return;
+                        error.AppendLine(e.Data);
                         request.OnErrorDataReceived?.Invoke(e.Data);
-                    };
-                }
-
+                    }
+                };
+                request.CancellationToken.ThrowIfCancellationRequested();
                 process.Start();
-
-                if (process.StartInfo.RedirectStandardOutput)
+                result.ProcessId = process.Id;
+                if (process.StartInfo.RedirectStandardOutput) process.BeginOutputReadLine();
+                if (process.StartInfo.RedirectStandardError) process.BeginErrorReadLine();
+                try
                 {
-                    process.BeginOutputReadLine();
+                    await process.WaitForExitAsync(cancellation.Token);
+                    result.ExitCode = process.ExitCode;
                 }
-
-                if (process.StartInfo.RedirectStandardError)
+                catch (OperationCanceledException)
                 {
-                    process.BeginErrorReadLine();
+                    result.WasCanceled = request.CancellationToken.IsCancellationRequested;
+                    result.TimedOut = !result.WasCanceled;
+                    if (request.KillOnCancellation && !process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                        await process.WaitForExitAsync();
+                    }
+                    result.IsStillRunning = !process.HasExited;
+                    result.ExitCode = -1;
+                    // Keep draining redirected pipes after monitoring stops, so a maintenance
+                    // process can finish without broken pipes or callbacks to a closed page.
+                    System.Threading.Volatile.Write(ref observing, false);
+                    detached = true;
+                    Task completion = DisposeAfterExitAsync(process);
+                    MaintenanceCoordinator.Shared.TrackBackgroundTask(completion);
                 }
-
-                await process.WaitForExitAsync();
-                result.ExitCode = process.ExitCode;
+                lock (output) result.StandardOutput = output.ToString();
+                lock (error) result.StandardError = error.ToString();
+                if (result.TimedOut || result.WasCanceled)
+                {
+                    result.StandardError += Environment.NewLine +
+                        (result.TimedOut ? "Monitoring timed out." : "Monitoring was canceled.") +
+                        (result.IsStillRunning ? $" Process {result.ProcessId} is still running." : string.Empty);
+                }
+                return result;
             }
+            finally
+            {
+                if (!detached) process.Dispose();
+            }
+        }
 
-            result.StandardOutput = standardOutput.ToString();
-            result.StandardError = standardError.ToString();
-            return result;
+        private static async Task DisposeAfterExitAsync(Process process)
+        {
+            try { await process.WaitForExitAsync(); }
+            catch (InvalidOperationException) { }
+            finally { process.Dispose(); }
         }
 
         public void StartDetached(ScriptExecutionRequest request)

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.Threading;
 using Office365CleanupTool.Models;
 using Office365CleanupTool.Services;
 
@@ -73,6 +74,12 @@ namespace Office365CleanupTool
         private readonly Label _lblResultTitle;
 
         private bool _isInstalling;
+        private bool _refreshingLanguageList;
+        private bool _rebindingControls;
+        private readonly HashSet<string> _selectedLanguages = new(StringComparer.OrdinalIgnoreCase);
+        private int _precheckRequestId;
+        private bool _isChecking;
+        private CancellationTokenSource? _installationCancellation;
         private bool _hasAppliedLanguage;
         private string _lastLogFilePath = string.Empty;
 
@@ -138,6 +145,11 @@ namespace Office365CleanupTool
         }
 
         public WorkbenchInstallationControl(UiLanguage initialLanguage)
+            : this(initialLanguage, new ValidationService())
+        {
+        }
+
+        internal WorkbenchInstallationControl(UiLanguage initialLanguage, ValidationService validationService)
         {
             AutoScaleMode = AutoScaleMode.None;
             Dock = DockStyle.Fill;
@@ -147,7 +159,7 @@ namespace Office365CleanupTool
             _language = initialLanguage;
 
             _installationService = new InstallationService();
-            _validationService = new ValidationService();
+            _validationService = validationService;
             _currentConfig = new InstallationConfig();
             _installationService.ProgressChanged += OnInstallationProgressChanged;
 
@@ -329,6 +341,7 @@ namespace Office365CleanupTool
                 _clbExcludeApps.Items.Add(new ExcludeAppItem { Display = GetLocalizedAppDisplayName(appId), Value = appId }, false);
             }
 
+            _selectedLanguages.Add(GetPreferredSystemLanguage());
             RefreshLanguageList();
             UpdateConfiguration();
         }
@@ -343,7 +356,14 @@ namespace Office365CleanupTool
             _chkPinToTaskbar.CheckedChanged += (_, _) => UpdateConfiguration();
             _txtLanguageSearch.TextChanged += (_, _) => RefreshLanguageList();
             _clbExcludeApps.ItemCheck += (_, _) => this.BeginInvokeWhenReady(UpdateConfiguration);
-            _clbLanguages.ItemCheck += (_, _) => this.BeginInvokeWhenReady(UpdateConfiguration);
+            _clbLanguages.ItemCheck += (_, e) =>
+            {
+                if (_refreshingLanguageList) return;
+                string language = GetLanguageValue(_clbLanguages.Items[e.Index]);
+                if (e.NewValue == CheckState.Checked) _selectedLanguages.Add(language);
+                else _selectedLanguages.Remove(language);
+                this.BeginInvokeWhenReady(UpdateConfiguration);
+            };
         }
 
         private void LayoutControls()
@@ -478,11 +498,11 @@ namespace Office365CleanupTool
             _precheckCard.Size = new Size(availableWidth, S(244));
             int precheckHeaderHeight = S(58);
             _lblPrecheckTitle.Location = new Point(S(20), S(14));
-            _lblPrecheckTitle.Size = new Size(availableWidth - S(40), S(28));
             _lblPrecheckStatus.Location = new Point(availableWidth - S(188), S(16));
             _lblPrecheckStatus.Size = new Size(S(168), S(28));
             _btnRefreshChecks.Size = WorkbenchUi.ScaleSize(new Size(148, 40), scale);
             _btnRefreshChecks.Location = new Point(availableWidth - _btnRefreshChecks.Width - S(20), (precheckHeaderHeight - _btnRefreshChecks.Height) / 2);
+            _lblPrecheckTitle.Size = new Size(_btnRefreshChecks.Left - S(12) - _lblPrecheckTitle.Left, S(28));
             _precheckOutputHost.Location = new Point(S(20), precheckHeaderHeight);
             _precheckOutputHost.Size = new Size(availableWidth - S(40), S(162));
             _txtPrecheckResult.Location = new Point(S(10), S(10));
@@ -524,6 +544,7 @@ namespace Office365CleanupTool
 
         private void UpdateConfiguration()
         {
+            if (_rebindingControls || _isInstalling) return;
             _cboEdition.DroppedDown = false;
             _cboInstallTarget.DroppedDown = false;
             _basicCard.SuspendLayout();
@@ -534,7 +555,7 @@ namespace Office365CleanupTool
 
             _currentConfig.Edition = _cboEdition.SelectedIndex == 0 ? OfficeEdition.Business : OfficeEdition.Enterprise;
             _currentConfig.Architecture = _cboArchitecture.SelectedIndex == 0 ? OfficeArchitecture.x64 : OfficeArchitecture.x86;
-            _currentConfig.Channel = _cboChannel.SelectedIndex == 0 ? UpdateChannel.Monthly : UpdateChannel.Broad;
+            _currentConfig.Channel = Enum.Parse<UpdateChannel>(((OptionItem)_cboChannel.SelectedItem!).Key);
             _currentConfig.SilentInstall = _chkSilentInstall.Checked;
             _currentConfig.DisplayInstall = !_chkSilentInstall.Checked;
             _currentConfig.EnableUpdates = true;
@@ -551,6 +572,8 @@ namespace Office365CleanupTool
 
         private async System.Threading.Tasks.Task RefreshPrecheckAsync()
         {
+            int requestId = ++_precheckRequestId;
+            _isChecking = true;
             _btnRefreshChecks.Enabled = false;
             _lblPrecheckStatus.Text = T("正在检查系统环境...", "Checking system environment...");
             WorkbenchUi.ApplyStatusStyle(_lblPrecheckStatus, WorkbenchTone.Info);
@@ -558,6 +581,7 @@ namespace Office365CleanupTool
             try
             {
                 ValidationReport report = await _validationService.GetValidationReportAsync(_language);
+                if (IsDisposed || Disposing || requestId != _precheckRequestId) return;
                 _lblPrecheckStatus.Text = report.HasBlockingItems
                     ? T("存在阻止安装的检查项", "Blocking items were found")
                     : report.HasAttentionItems
@@ -576,14 +600,19 @@ namespace Office365CleanupTool
             }
             catch (Exception ex)
             {
+                if (IsDisposed || Disposing || requestId != _precheckRequestId) return;
                 _lblPrecheckStatus.Text = T("检查失败", "Check failed");
                 WorkbenchUi.ApplyStatusStyle(_lblPrecheckStatus, WorkbenchTone.Danger);
                 _txtPrecheckResult.Text = T($"环境检查失败：{ex.Message}", $"Environment check failed: {ex.Message}");
             }
             finally
             {
-                _btnRefreshChecks.Enabled = !_isInstalling;
-                LayoutControls();
+                if (!IsDisposed && !Disposing && requestId == _precheckRequestId)
+                {
+                    _isChecking = false;
+                    _btnRefreshChecks.Enabled = !_isInstalling;
+                    LayoutControls();
+                }
             }
         }
 
@@ -599,7 +628,12 @@ namespace Office365CleanupTool
 
         private async void btnInstallOffice365_Click(object? sender, EventArgs e)
         {
-            if (_isInstalling) return;
+            if (_isInstalling)
+            {
+                _installationCancellation?.Cancel();
+                _btnInstall.Enabled = false;
+                return;
+            }
             UpdateConfiguration();
 
             string targetName = GetSelectedInstallTargetDisplayName();
@@ -607,7 +641,7 @@ namespace Office365CleanupTool
                 ? T("不适用", "N/A")
                 : (_currentConfig.Edition == OfficeEdition.Business ? T("商业版", "Business") : T("企业版", "Enterprise"));
             string architectureText = _currentConfig.Architecture == OfficeArchitecture.x64 ? T("64位", "64-bit") : T("32位", "32-bit");
-            string channelText = _currentConfig.Channel == UpdateChannel.Monthly ? T("当前频道", "Current Channel") : T("半年频道", "Semi-Annual Channel");
+            string channelText = OfficeChannelService.GetChannelDisplayName(_currentConfig.Channel, _language);
             string languageText = _currentConfig.LanguageIDs.Count > 0 ? string.Join(_language == UiLanguage.Chinese ? "、" : ", ", _currentConfig.LanguageIDs) : T("匹配系统语言", "Match system language");
             string excludeAppsText = _excludeAppsCard.Visible && _currentConfig.ExcludeApps.Count > 0
                 ? string.Join(_language == UiLanguage.Chinese ? "、" : ", ", _currentConfig.ExcludeApps.Select(GetLocalizedAppDisplayName))
@@ -626,6 +660,7 @@ namespace Office365CleanupTool
             try
             {
                 _isInstalling = true;
+                _installationCancellation = new CancellationTokenSource();
                 UpdateUiState();
                 _progressBar.Visible = true;
                 _progressBar.Value = 0;
@@ -634,8 +669,16 @@ namespace Office365CleanupTool
                 _txtResultDetails.Text = T("正在准备安装...\r\n", "Preparing installation...\r\n");
                 LayoutControls();
 
-                InstallationExecutionResult result = await _installationService.InstallOfficeAsync(_currentConfig, _currentConfig.ExcludeApps, _language);
+                InstallationExecutionResult result = await _installationService.InstallOfficeAsync(_currentConfig, _currentConfig.ExcludeApps, _language, _installationCancellation.Token);
                 _lastLogFilePath = result.LogFilePath;
+
+                if (result.MonitoringStopped)
+                {
+                    _lblResult.Text = T("已停止等待", "Monitoring Stopped");
+                    WorkbenchUi.ApplyStatusStyle(_lblResult, WorkbenchTone.Warning);
+                    _txtResultDetails.Text = result.Message + Environment.NewLine + result.LogFilePath;
+                    return;
+                }
 
                 if (!result.Success)
                 {
@@ -664,6 +707,12 @@ namespace Office365CleanupTool
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }
+            catch (OperationCanceledException)
+            {
+                _lblResult.Text = T("已取消准备", "Preparation Canceled");
+                _txtResultDetails.Text = T("已取消安装准备。", "Installation preparation canceled.");
+                WorkbenchUi.ApplyStatusStyle(_lblResult, WorkbenchTone.Warning);
+            }
             catch (Exception ex)
             {
                 _lblResult.Text = T("安装失败", "Install failed");
@@ -679,6 +728,8 @@ namespace Office365CleanupTool
             {
                 _progressBar.Visible = false;
                 _isInstalling = false;
+                _installationCancellation?.Dispose();
+                _installationCancellation = null;
                 UpdateUiState();
                 LayoutControls();
             }
@@ -721,11 +772,24 @@ namespace Office365CleanupTool
 
             if (!_isInstalling)
             {
-                _lblResult.Text = T("准备就绪", "Ready");
-                WorkbenchUi.ApplyStatusStyle(_lblResult, WorkbenchTone.Default);
+                if (string.IsNullOrWhiteSpace(_lblResult.Text)) _lblResult.Text = T("准备就绪", "Ready");
+                var statuses = new[]
+                {
+                    ("准备就绪", "Ready"), ("安装失败", "Install failed"),
+                    ("已停止等待", "Monitoring Stopped"), ("已取消准备", "Preparation Canceled"),
+                    ("安装任务已启动完成", "Install task started successfully")
+                };
+                foreach (var (zh, en) in statuses)
+                {
+                    if (_lblResult.Text == zh || _lblResult.Text == en)
+                    {
+                        _lblResult.Text = T(zh, en);
+                        break;
+                    }
+                }
                 if (string.IsNullOrWhiteSpace(_txtResultDetails.Text) ||
-                    _txtResultDetails.Text.Contains("安装结果", StringComparison.OrdinalIgnoreCase) ||
-                    _txtResultDetails.Text.Contains("Installation result", StringComparison.OrdinalIgnoreCase))
+                    _txtResultDetails.Text == "安装结果和执行日志会显示在这里" ||
+                    _txtResultDetails.Text == "Installation result and logs will be shown here")
                 {
                     _txtResultDetails.Text = T("安装结果和执行日志会显示在这里", "Installation result and logs will be shown here");
                 }
@@ -733,15 +797,26 @@ namespace Office365CleanupTool
 
             if (shouldRebindLists)
             {
-                RebindSelectionCombos();
-                RefreshExcludeAppDisplay();
-                RefreshLanguageList();
+                _rebindingControls = true;
+                try
+                {
+                    RebindSelectionCombos();
+                    RefreshExcludeAppDisplay();
+                    RefreshLanguageList();
+                }
+                finally
+                {
+                    _rebindingControls = false;
+                }
                 _hasAppliedLanguage = true;
-                if (hadAppliedLanguage)
+                UpdateConfiguration();
+                if (hadAppliedLanguage && !_isInstalling)
                 {
                     this.BeginInvokeWhenReady(() => _ = RefreshPrecheckAsync());
                 }
             }
+            UpdateUiState();
+            LayoutControls();
         }
 
         private void RebindSelectionCombos()
@@ -770,11 +845,9 @@ namespace Office365CleanupTool
                 new OptionItem { Key = "x86", Display = T("32位", "32-bit") }
             }, architectureIndex);
 
-            BindCombo(_cboChannel, new[]
-            {
-                new OptionItem { Key = "monthly", Display = T("当前频道", "Current Channel") },
-                new OptionItem { Key = "broad", Display = T("半年频道", "Semi-Annual Channel") }
-            }, channelIndex);
+            BindCombo(_cboChannel, new OfficeChannelService().GetSupportedChannels(_language)
+                .Select(channel => new OptionItem { Key = channel.Channel.ToString(), Display = channel.DisplayName })
+                .ToArray(), channelIndex);
         }
 
         private static void BindCombo(ComboBox comboBox, IReadOnlyList<OptionItem> items, int selectedIndex)
@@ -877,15 +950,16 @@ namespace Office365CleanupTool
             _clbExcludeApps.Enabled = enabled;
             _txtLanguageSearch.Enabled = enabled;
             _clbLanguages.Enabled = enabled;
-            _btnRefreshChecks.Enabled = enabled;
-            _btnInstall.Enabled = enabled;
+            _btnRefreshChecks.Enabled = enabled && !_isChecking;
+            _btnInstall.Enabled = enabled || _installationCancellation?.IsCancellationRequested == false;
+            _btnInstall.Text = _isInstalling ? T("取消/停止等待", "Cancel / Stop Waiting") : T("立即安装", "Install Now");
             _btnOpenLogs.Enabled = true;
         }
 
         private List<string> GetSelectedExcludeApps()
         {
             var result = new List<string>();
-            if (!_excludeAppsCard.Visible) return result;
+            if (_cboInstallTarget.SelectedIndex > 0) return result;
             foreach (object checkedItem in _clbExcludeApps.CheckedItems)
             {
                 if (checkedItem is ExcludeAppItem item) result.Add(item.Value);
@@ -895,46 +969,47 @@ namespace Office365CleanupTool
 
         private List<string> GetSelectedLanguages()
         {
-            var result = new List<string>();
-            foreach (object checkedItem in _clbLanguages.CheckedItems)
-            {
-                string value = GetLanguageValue(checkedItem);
-                if (!string.IsNullOrWhiteSpace(value)) result.Add(value);
-            }
-            return result;
+            return SupportedLanguages.Select(item => item.Code).Where(_selectedLanguages.Contains).ToList();
         }
 
         private void RefreshLanguageList()
         {
             string searchText = _txtLanguageSearch.Text.Trim();
-            var selectedLanguages = new HashSet<string>(_currentConfig.LanguageIDs, StringComparer.OrdinalIgnoreCase);
-            foreach (object checkedItem in _clbLanguages.CheckedItems) selectedLanguages.Add(GetLanguageValue(checkedItem));
-
-            _clbLanguages.Items.Clear();
-            string systemLanguage = GetPreferredSystemLanguage();
-            List<string> languages = SupportedLanguages.Select(item => item.Code).ToList();
-            if (!string.IsNullOrWhiteSpace(systemLanguage))
+            _refreshingLanguageList = true;
+            _clbLanguages.BeginUpdate();
+            try
             {
-                languages.RemoveAll(language => string.Equals(language, systemLanguage, StringComparison.OrdinalIgnoreCase));
-                languages.Insert(0, systemLanguage);
-            }
+                _clbLanguages.Items.Clear();
+                string systemLanguage = GetPreferredSystemLanguage();
+                List<string> languages = SupportedLanguages.Select(item => item.Code).ToList();
+                if (!string.IsNullOrWhiteSpace(systemLanguage))
+                {
+                    languages.RemoveAll(language => string.Equals(language, systemLanguage, StringComparison.OrdinalIgnoreCase));
+                    languages.Insert(0, systemLanguage);
+                }
 
-            foreach (string language in languages)
+                foreach (string language in languages)
+                {
+                    string display = BuildLanguageDisplayName(language);
+                    bool matchesSearch = string.IsNullOrWhiteSpace(searchText) || language.Contains(searchText, StringComparison.OrdinalIgnoreCase) || display.Contains(searchText, StringComparison.OrdinalIgnoreCase);
+                    if (!matchesSearch) continue;
+                    _clbLanguages.Items.Add(new LanguageItem { Value = language, Display = display });
+                }
+
+                for (int i = 0; i < _clbLanguages.Items.Count; i++)
+                {
+                    string language = GetLanguageValue(_clbLanguages.Items[i]);
+                    bool isChecked = _selectedLanguages.Contains(language);
+                    _clbLanguages.SetItemChecked(i, isChecked);
+                }
+
+                if (_clbLanguages.Items.Count > 0) _clbLanguages.TopIndex = 0;
+            }
+            finally
             {
-                string display = BuildLanguageDisplayName(language);
-                bool matchesSearch = string.IsNullOrWhiteSpace(searchText) || language.Contains(searchText, StringComparison.OrdinalIgnoreCase) || display.Contains(searchText, StringComparison.OrdinalIgnoreCase);
-                if (!matchesSearch) continue;
-                _clbLanguages.Items.Add(new LanguageItem { Value = language, Display = display });
+                _clbLanguages.EndUpdate();
+                _refreshingLanguageList = false;
             }
-
-            for (int i = 0; i < _clbLanguages.Items.Count; i++)
-            {
-                string language = GetLanguageValue(_clbLanguages.Items[i]);
-                bool isChecked = selectedLanguages.Count == 0 ? IsSystemPreferredLanguage(language) : selectedLanguages.Contains(language);
-                _clbLanguages.SetItemChecked(i, isChecked);
-            }
-
-            if (_clbLanguages.Items.Count > 0) _clbLanguages.TopIndex = 0;
         }
 
         private string GetSelectedInstallTargetDisplayName() => _cboInstallTarget.SelectedIndex switch
@@ -960,25 +1035,30 @@ namespace Office365CleanupTool
             string[] candidates = { CultureInfo.InstalledUICulture.Name, CultureInfo.CurrentUICulture.Name, CultureInfo.CurrentCulture.Name };
             foreach (string candidate in candidates)
             {
-                if (!string.IsNullOrWhiteSpace(candidate)) return candidate;
+                if (!string.IsNullOrWhiteSpace(candidate)) return ResolveSupportedSystemLanguage(candidate);
             }
             return "zh-CN";
         }
 
         private static bool IsSystemPreferredLanguage(string language)
         {
-            string systemLanguage = GetPreferredSystemLanguage();
-            if (string.Equals(language, systemLanguage, StringComparison.OrdinalIgnoreCase)) return true;
+            return string.Equals(language, GetPreferredSystemLanguage(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static string ResolveSupportedSystemLanguage(string systemLanguage)
+        {
+            string? exact = SupportedLanguages.FirstOrDefault(item => string.Equals(item.Code, systemLanguage, StringComparison.OrdinalIgnoreCase)).Code;
+            if (exact != null) return exact;
+            if (systemLanguage.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return systemLanguage.Contains("Hant", StringComparison.OrdinalIgnoreCase)
+                    || systemLanguage.EndsWith("HK", StringComparison.OrdinalIgnoreCase)
+                    || systemLanguage.EndsWith("MO", StringComparison.OrdinalIgnoreCase) ? "zh-TW" : "zh-CN";
             try
             {
-                string systemTwoLetter = CultureInfo.GetCultureInfo(systemLanguage).TwoLetterISOLanguageName;
-                string languageTwoLetter = CultureInfo.GetCultureInfo(language).TwoLetterISOLanguageName;
-                return string.Equals(systemTwoLetter, languageTwoLetter, StringComparison.OrdinalIgnoreCase);
+                string prefix = CultureInfo.GetCultureInfo(systemLanguage).TwoLetterISOLanguageName + "-";
+                return SupportedLanguages.FirstOrDefault(item => item.Code.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).Code ?? "en-US";
             }
-            catch (CultureNotFoundException)
-            {
-                return false;
-            }
+            catch (CultureNotFoundException) { return "en-US"; }
         }
 
         private string BuildLanguageDisplayName(string language)

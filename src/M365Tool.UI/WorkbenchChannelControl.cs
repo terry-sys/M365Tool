@@ -46,8 +46,11 @@ namespace Office365CleanupTool
         private bool _isRunning;
         private bool _suppressChannelSelectionChanged;
         private bool _hasLoadedVersions;
+        private bool _isLoadingVersions;
+        private int _versionLoadId;
         private UiLanguage _language;
         private List<OfficeVersionOption> _loadedVersions = new();
+        private string _versionSummaryText = string.Empty;
 
         public WorkbenchChannelControl(OfficeChannelService officeChannelService)
         {
@@ -122,18 +125,10 @@ namespace Office365CleanupTool
             _chkDisableUpdates.Text = T("切换后禁用自动更新", "Disable automatic updates after switching");
             _btnApply.Text = T("开始切换", "Start Switch");
 
-            if (string.IsNullOrWhiteSpace(_txtResult.Text) ||
-                _txtResult.Text.Contains("查看频道切换", StringComparison.OrdinalIgnoreCase) ||
-                _txtResult.Text.Contains("View channel switch", StringComparison.OrdinalIgnoreCase))
-            {
-                _txtResult.Text = T(
-                    "可以在这里查看频道切换的状态、目标版本和执行结果。",
-                    "View channel switch status, target version, and execution results here.");
-            }
-
             RebuildChannelItems();
             RebuildVersionItems();
             RefreshResultTextForLanguage();
+            UpdateUiState();
             LayoutControls();
         }
 
@@ -165,7 +160,7 @@ namespace Office365CleanupTool
                 _cboChannel.Items.Add(new ChannelOptionView
                 {
                     Raw = channel,
-                    Display = GetChannelDisplayName(channel.Channel)
+                    Display = channel.DisplayName
                 });
             }
 
@@ -226,7 +221,7 @@ namespace Office365CleanupTool
             }
 
             _cboVersion.EndUpdate();
-            _cboVersion.Enabled = !_isRunning && _cboVersion.Items.Count > 0;
+            _cboVersion.Enabled = !_isRunning && !_isLoadingVersions && _cboVersion.Items.Count > 0;
         }
 
         private void LayoutControls()
@@ -245,10 +240,11 @@ namespace Office365CleanupTool
                 WorkbenchUi.DefaultContentMaxWidth,
                 margin,
                 scrollbarAllowance: SystemInformation.VerticalScrollBarWidth);
-            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin);
+            Point scrollOffset = AutoScrollPosition;
+            int contentLeft = WorkbenchUi.GetAdaptiveContentLeft(viewportWidth, availableWidth, margin) + scrollOffset.X;
 
             bool stacked = availableWidth < 860;
-            _settingsCard.Location = new Point(contentLeft, S(18));
+            _settingsCard.Location = new Point(contentLeft, S(18) + scrollOffset.Y);
             _settingsCard.Size = new Size(availableWidth, stacked ? S(240) : S(194));
             _lblSettingsTitle.Location = new Point(S(20), S(14));
             _lblSettingsTitle.Size = new Size(availableWidth - S(40), S(28));
@@ -272,7 +268,7 @@ namespace Office365CleanupTool
             _resultCard.Location = new Point(contentLeft, _settingsCard.Bottom + S(18));
             bool stackButton = availableWidth < 820;
             _btnApply.Size = WorkbenchUi.ScaleSize(new Size(138, 42), scale);
-            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top, stackButton ? 292 : 276, 430, scale);
+            int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top - scrollOffset.Y, stackButton ? 292 : 276, 430, scale);
             _resultCard.Size = new Size(availableWidth, resultHeight);
             _lblResultTitle.Location = new Point(S(20), S(14));
             _lblResultTitle.Size = new Size(availableWidth - S(40), S(28));
@@ -287,7 +283,7 @@ namespace Office365CleanupTool
                 ? new Point(S(20), buttonTop)
                 : new Point(availableWidth - _btnApply.Width - S(20), buttonTop);
 
-            AutoScrollMinSize = new Size(0, _resultCard.Bottom + S(24));
+            AutoScrollMinSize = new Size(0, _resultCard.Bottom - scrollOffset.Y + S(24));
         }
 
         private async Task LoadVersionsAsync()
@@ -297,6 +293,9 @@ namespace Office365CleanupTool
                 return;
             }
 
+            int requestId = ++_versionLoadId;
+            _isLoadingVersions = true;
+            _loadedVersions.Clear();
             try
             {
                 _lblLoading.Visible = true;
@@ -306,8 +305,11 @@ namespace Office365CleanupTool
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Info);
                 _lblResultStatus.Text = T("正在加载版本", "Loading Versions");
                 _txtResult.Text = T("正在加载版本列表，请稍候...", "Loading versions, please wait...");
+                _versionSummaryText = _txtResult.Text;
 
-                _loadedVersions = (await _officeChannelService.GetAvailableVersionsAsync(channelView.Raw.Channel)).ToList();
+                var versions = await _officeChannelService.GetAvailableVersionsAsync(channelView.Raw.Channel);
+                if (IsDisposed || requestId != _versionLoadId) return;
+                _loadedVersions = versions.ToList();
                 if (_loadedVersions.Count == 0)
                 {
                     throw new InvalidOperationException(T("未获取到该频道的版本列表。", "No version list was retrieved for this channel."));
@@ -315,11 +317,12 @@ namespace Office365CleanupTool
 
                 RebuildVersionItems();
 
+                _isLoadingVersions = false;
                 RefreshResultTextForLanguage();
-                _btnApply.Enabled = true;
             }
             catch (Exception ex)
             {
+                if (IsDisposed || requestId != _versionLoadId) return;
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Danger);
                 _lblResultStatus.Text = T("加载失败", "Load Failed");
                 _txtResult.Text = T($"加载版本列表失败：{ex.Message}", $"Failed to load versions: {ex.Message}");
@@ -331,14 +334,18 @@ namespace Office365CleanupTool
             }
             finally
             {
-                _lblLoading.Visible = false;
-                _cboVersion.Enabled = !_isRunning && _cboVersion.Items.Count > 0;
+                if (!IsDisposed && requestId == _versionLoadId)
+                {
+                    _isLoadingVersions = false;
+                    _lblLoading.Visible = false;
+                    UpdateUiState();
+                }
             }
         }
 
-        private void btnApply_Click(object? sender, EventArgs e)
+        private async void btnApply_Click(object? sender, EventArgs e)
         {
-            if (_isRunning)
+            if (_isRunning || _isLoadingVersions)
             {
                 return;
             }
@@ -360,8 +367,8 @@ namespace Office365CleanupTool
 
             DialogResult confirm = MessageBox.Show(
                 T(
-                    $"将切换到：{channelView.Display}\n目标版本：{versionText}\n禁用自动更新：{(_chkDisableUpdates.Checked ? "是" : "否")}\n\n是否继续？",
-                    $"Will switch to: {channelView.Display}\nTarget version: {versionText}\nDisable automatic updates: {(_chkDisableUpdates.Checked ? "Yes" : "No")}\n\nContinue?"),
+                    $"将切换到：{channelView.Display}\n目标版本：{versionText}\n禁用自动更新：{(_chkDisableUpdates.Checked ? "是" : "否")}\n\n请先保存文档；如更新提示关闭应用，请按提示处理。\n\n是否继续？",
+                    $"Will switch to: {channelView.Display}\nTarget version: {versionText}\nDisable automatic updates: {(_chkDisableUpdates.Checked ? "Yes" : "No")}\n\nSave your documents first and follow any prompts to close apps.\n\nContinue?"),
                 T("确认切换更新频道", "Confirm Channel Switch"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
@@ -385,20 +392,24 @@ namespace Office365CleanupTool
                     throw new InvalidOperationException(T("未检测到 Office ClickToRun 客户端。", "Office ClickToRun client was not detected."));
                 }
 
-                _officeChannelService.SwitchChannel(channelView.Raw, _chkDisableUpdates.Checked, version, _language);
+                bool disableUpdates = _chkDisableUpdates.Checked;
+                UiLanguage executionLanguage = _language;
+                await Task.Run(() => _officeChannelService.SwitchChannel(channelView.Raw, disableUpdates, version, executionLanguage));
+                if (IsDisposed || Disposing) return;
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Success);
-                _lblResultStatus.Text = T("切换完成", "Completed");
+                _lblResultStatus.Text = T("更新已发起", "Update Requested");
                 _txtResult.Text = T(
-                    $"Office 更新频道切换完成。\r\n\r\n目标频道：{channelView.Display}\r\n目标版本：{versionText}\r\n已拉起 Office 更新界面并触发更新流程。",
-                    $"Office update channel switch completed.\r\n\r\nTarget channel: {channelView.Display}\r\nTarget version: {versionText}\r\nOffice update UI has been launched and update flow is triggered.");
+                    $"频道配置已提交，Office 更新已发起。\r\n\r\n目标频道：{channelView.Display}\r\n目标版本：{versionText}\r\n频道变更需安装目标频道的更新后生效；组织策略可能覆盖本地设置。",
+                    $"Channel configuration submitted and Office update requested.\r\n\r\nTarget channel: {channelView.Display}\r\nTarget version: {versionText}\r\nThe channel takes effect after the target update is installed. Organization policies may override local settings.");
                 MessageBox.Show(
-                    T("Office 更新频道切换完成，已拉起 Office 更新界面。", "Office update channel switch completed and Office update UI has been launched."),
+                    T("Office 更新已发起，安装完成后频道变更才会生效。", "Office update has been requested. The channel changes after the update is installed."),
                     T("完成", "Done"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
+                if (IsDisposed || Disposing) return;
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Danger);
                 _lblResultStatus.Text = T("切换失败", "Switch Failed");
                 _txtResult.Text = T($"切换失败：{ex.Message}", $"Switch failed: {ex.Message}");
@@ -411,7 +422,7 @@ namespace Office365CleanupTool
             finally
             {
                 _isRunning = false;
-                UpdateUiState();
+                if (!IsDisposed && !Disposing) UpdateUiState();
             }
         }
 
@@ -419,22 +430,15 @@ namespace Office365CleanupTool
         {
             bool enabled = !_isRunning;
             _cboChannel.Enabled = enabled;
-            _cboVersion.Enabled = enabled && _cboVersion.Items.Count > 0;
+            _cboVersion.Enabled = enabled && !_isLoadingVersions && _cboVersion.Items.Count > 0;
             _chkDisableUpdates.Enabled = enabled;
-            _btnApply.Enabled = enabled && _cboVersion.Items.Count > 0;
+            _btnApply.Enabled = enabled && !_isLoadingVersions && _cboVersion.Items.Count > 0;
         }
 
         private void CloseAllDropDowns()
         {
             _cboChannel.DroppedDown = false;
             _cboVersion.DroppedDown = false;
-        }
-
-        private string GetChannelDisplayName(UpdateChannel channel)
-        {
-            return channel == UpdateChannel.Broad
-                ? T("半年频道", "Semi-Annual Channel")
-                : T("当前频道", "Current Channel");
         }
 
         private string GetVersionDisplayName(OfficeVersionOption version)
@@ -451,7 +455,21 @@ namespace Office365CleanupTool
 
         private void RefreshResultTextForLanguage()
         {
+            if (_isLoadingVersions)
+            {
+                WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Info);
+                _lblResultStatus.Text = T("正在加载版本", "Loading Versions");
+                _txtResult.Text = T("正在加载版本列表，请稍候...", "Loading versions, please wait...");
+                _versionSummaryText = _txtResult.Text;
+                return;
+            }
+
             if (_isRunning)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_txtResult.Text) && _txtResult.Text != _versionSummaryText)
             {
                 return;
             }
@@ -463,15 +481,23 @@ namespace Office365CleanupTool
                 _txtResult.Text = T(
                     "可以在这里查看频道切换的状态、目标版本和执行结果。",
                     "View channel switch status, target version, and execution results here.");
+                _versionSummaryText = _txtResult.Text;
                 return;
             }
 
             WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Success);
             _lblResultStatus.Text = T("版本列表就绪", "Versions Ready");
             _txtResult.Text = T(
-                $"已加载 {channelView.Display} 的版本列表，可选择最新版本或固定版本。",
-                $"Loaded versions for {channelView.Display}. You can choose latest or fixed version.");
+                $"已加载 {channelView.Display} 的版本列表，可选择最新版本或固定版本。\r\n\r\n{GetChannelGuidance(channelView.Raw.Channel)}",
+                $"Loaded versions for {channelView.Display}. You can choose latest or fixed version.\r\n\r\n{GetChannelGuidance(channelView.Raw.Channel)}");
+            _versionSummaryText = _txtResult.Text;
         }
+
+        private string GetChannelGuidance(UpdateChannel channel) => channel == UpdateChannel.Broad
+            ? T("自 2606 起，原半年企业频道接收月度企业更新；旧 CDN 的 Build 可能不同。本列表仅使用旧频道对应版本，新部署建议选择月度企业频道。",
+                "From version 2606, legacy Semi-Annual devices receive monthly enterprise updates. Legacy CDN builds may differ; this list uses only that channel's builds. Use Monthly Enterprise for new deployments.")
+            : T("频道变更需安装目标频道的更新后生效；组织策略优先于本地配置。",
+                "The channel changes after the target update is installed. Organization policies take precedence over local configuration.");
 
         private string T(string zh, string en) => LocalizationService.Localize(_language, zh, en);
     }

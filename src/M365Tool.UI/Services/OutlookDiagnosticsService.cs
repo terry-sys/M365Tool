@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -52,25 +51,21 @@ namespace Office365CleanupTool.Services
             bool requestOfflineScan,
             UiLanguage language)
         {
+            using var operation = MaintenanceCoordinator.Shared.Begin(language);
             ToolSessionPaths session = ToolPathService.CreateSession("OutlookTools", scenarioKey);
             string saraZipPath = Path.Combine(session.DownloadsDirectory, "SaRA.zip");
             string extractRoot = Path.Combine(session.ExtractedDirectory, "SaRA");
             string logRoot = session.LogsDirectory;
             DateTime startedAtUtc = DateTime.UtcNow;
 
-            using (var client = new HttpClient())
-            using (var response = await client.GetAsync(SaraDownloadUrl, HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
-                await using var file = new FileStream(saraZipPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await response.Content.CopyToAsync(file);
-            }
+            await ToolDownloadService.DownloadAsync(SaraDownloadUrl, saraZipPath, CancellationToken.None);
 
             ZipFile.ExtractToDirectory(saraZipPath, extractRoot, true);
 
             string executablePath = FindSaraExecutable(extractRoot);
             GetHelpCapabilities caps = await QueryCapabilitiesAsync(executablePath);
             string arguments = BuildArguments(argumentsTemplate, logRoot, requestOfflineScan, caps);
+            startedAtUtc = DateTime.UtcNow;
 
             // Current GetHelpCmd builds in this environment may require a real console handle.
             // If -OfflineScan is not supported, run Outlook scan in interactive console mode directly.
@@ -143,7 +138,7 @@ namespace Office365CleanupTool.Services
 
             int? detectedCode = scenarioKey == "OutlookScan"
                 ? (DetectOutlookScanCode(output, error, process.ExitCode)
-                    ?? DetectOutlookScanCodeFromHarvestedLogs(logRoot))
+                    ?? DetectOutlookScanCodeFromHarvestedLogs(logRoot, startedAtUtc))
                 : null;
 
             var result = new OutlookDiagnosticResult
@@ -228,8 +223,8 @@ namespace Office365CleanupTool.Services
             }
 
             int harvestedCount = await HarvestGeneratedLogsAsync(logRoot, startedAtUtc);
-            int? detectedCode = DetectOutlookScanCodeFromHarvestedLogs(logRoot)
-                ?? DetectOutlookScanCode(string.Empty, string.Empty, interactive.ExitCode);
+            int? detectedCode = DetectOutlookScanCode(string.Empty, string.Empty, interactive.ExitCode)
+                ?? DetectOutlookScanCodeFromHarvestedLogs(logRoot, startedAtUtc);
 
             string interactiveNote = interactive.Note;
             if (harvestedCount > 0)
@@ -279,23 +274,7 @@ namespace Office365CleanupTool.Services
             string scriptPath = Path.Combine(Path.GetTempPath(), $"M365Tool_GetHelp_{Guid.NewGuid():N}.cmd");
             string exitCodePath = Path.Combine(Path.GetTempPath(), $"M365Tool_GetHelp_Exit_{Guid.NewGuid():N}.txt");
 
-            string scriptContent = string.Join(
-                Environment.NewLine,
-                "@echo off",
-                "chcp 65001 >nul",
-                "echo.",
-                "echo [M365Tool] Outlook scan requires interactive confirmation on this GetHelpCmd build.",
-                "echo [M365Tool] When prompted with \"Do you want to continue? (y/n):\", type y and press Enter.",
-                "echo.",
-                $"cd /d \"{workDir}\"",
-                $"\"{Path.GetFileName(executablePath)}\" {arguments}",
-                "set EXIT_CODE=%ERRORLEVEL%",
-                $"(echo %EXIT_CODE%) > \"{exitCodePath}\"",
-                "echo.",
-                "echo [M365Tool] GetHelpCmd has exited. You can close this window.",
-                "exit /b %EXIT_CODE%");
-
-            File.WriteAllText(scriptPath, scriptContent, Encoding.ASCII);
+            WriteInteractiveScript(scriptPath, workDir, executablePath, arguments, exitCodePath);
 
             try
             {
@@ -345,6 +324,26 @@ namespace Office365CleanupTool.Services
             }
         }
 
+        internal static void WriteInteractiveScript(string scriptPath, string workDir, string executablePath, string arguments, string exitCodePath)
+        {
+            string scriptContent = string.Join(
+                Environment.NewLine,
+                "@echo off",
+                "chcp 65001 >nul",
+                "echo.",
+                "echo [M365Tool] Outlook scan requires interactive confirmation on this GetHelpCmd build.",
+                "echo [M365Tool] When prompted with \"Do you want to continue? (y/n):\", type y and press Enter.",
+                "echo.",
+                $"cd /d \"{workDir}\"",
+                $"\"{executablePath}\" {arguments}",
+                "set EXIT_CODE=%ERRORLEVEL%",
+                $"(echo %EXIT_CODE%) > \"{exitCodePath}\"",
+                "echo.",
+                "echo [M365Tool] GetHelpCmd has exited. You can close this window.",
+                "exit /b %EXIT_CODE%");
+            File.WriteAllText(scriptPath, scriptContent, new UTF8Encoding(false));
+        }
+
         private static void TryDeleteFile(string path)
         {
             try
@@ -362,7 +361,7 @@ namespace Office365CleanupTool.Services
 
         private static async Task<int> HarvestGeneratedLogsAsync(string logRoot, DateTime startedAtUtc)
         {
-            DateTime lowerBoundUtc = startedAtUtc.AddMinutes(-2);
+            DateTime lowerBoundUtc = startedAtUtc;
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
             int copied = HarvestGeneratedLogsOnce(logRoot, lowerBoundUtc);
@@ -755,7 +754,7 @@ namespace Office365CleanupTool.Services
             }
         }
 
-        private static int? DetectOutlookScanCodeFromHarvestedLogs(string logRoot)
+        private static int? DetectOutlookScanCodeFromHarvestedLogs(string logRoot, DateTime startedAtUtc)
         {
             if (!Directory.Exists(logRoot))
             {
@@ -791,7 +790,7 @@ namespace Office365CleanupTool.Services
                     continue;
                 }
 
-                if (info.Length > 5L * 1024 * 1024)
+                if (info.Length > 5L * 1024 * 1024 || info.LastWriteTimeUtc < startedAtUtc)
                 {
                     continue;
                 }
@@ -843,7 +842,7 @@ namespace Office365CleanupTool.Services
             }
 
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            DateTime lowerBoundUtc = startedAtUtc.AddHours(-6);
+            DateTime lowerBoundUtc = startedAtUtc;
             string[] sourceRoots =
             {
                 Path.Combine(localAppData, "GetHelp"),
@@ -976,6 +975,8 @@ namespace Office365CleanupTool.Services
             bool requestOfflineScan,
             GetHelpCapabilities caps)
         {
+            if (requestOfflineScan && !caps.SupportsOfflineScanSwitch)
+                throw new NotSupportedException("当前诊断工具不支持离线扫描参数，已停止操作。请使用支持 -OfflineScan 的 Get Help 版本。 / This diagnostic tool does not support -OfflineScan. No scan was started; use a Get Help version that supports it.");
             string args = argumentsTemplate.Replace("{LOG}", logRoot, StringComparison.Ordinal);
 
             if (requestOfflineScan && caps.SupportsOfflineScanSwitch)
@@ -1076,7 +1077,8 @@ namespace Office365CleanupTool.Services
 
         private static bool DetermineSuccess(OutlookDiagnosticResult result, string scenarioKey)
         {
-            if (result.HasArgumentError || result.HasInteractionError)
+            if (result.HasArgumentError || result.HasInteractionError
+                || Regex.IsMatch(result.StandardOutput + "\n" + result.StandardError, @"ExecutionResult\s*:\s*Failed", RegexOptions.IgnoreCase))
             {
                 return false;
             }
@@ -1084,7 +1086,8 @@ namespace Office365CleanupTool.Services
             if (scenarioKey == "OutlookScan")
             {
                 int? code = result.DetectedScenarioCode;
-                return code == 1 || code == 2;
+                return (result.ExitCode == 0 || result.ExitCode == code)
+                    && (code == 1 || code == 2);
             }
 
             if (scenarioKey == "OutlookCalendarScan")
@@ -1098,28 +1101,14 @@ namespace Office365CleanupTool.Services
         private static int? DetectOutlookScanCode(string output, string error, int exitCode)
         {
             string all = (output ?? string.Empty) + Environment.NewLine + (error ?? string.Empty);
-
-            Match m = Regex.Match(all, @"(?m)\b(0?[1-5])\s*:");
-            if (m.Success && int.TryParse(m.Groups[1].Value, out int parsed))
-            {
-                return parsed;
-            }
-
-            if (all.IndexOf("An Offline scan was performed", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return 1;
-            }
-
-            if (all.IndexOf("A Full scan was performed", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                return 2;
-            }
-
-            if (exitCode >= 1 && exitCode <= 5)
-            {
-                return exitCode;
-            }
-
+            if (Regex.IsMatch(all, @"ExecutionResult\s*:\s*Failed", RegexOptions.IgnoreCase)) return 5;
+            if (exitCode is 4 or 5) return exitCode;
+            if (Regex.IsMatch(all, @"(?im)^\s*0?5\s*:\s*An error occurred while performing a scan of Outlook\b")) return 5;
+            if (Regex.IsMatch(all, @"(?im)^\s*0?4\s*:\s*Outlook\b")) return 4;
+            if (exitCode is not 0 and not 1 and not 2) return null;
+            if (Regex.IsMatch(all, @"(?im)^\s*(?:0?1\s*:\s*)?An Offline scan was performed\b")) return 1;
+            if (Regex.IsMatch(all, @"(?im)^\s*(?:0?2\s*:\s*)?A Full scan was performed\b")) return 2;
+            if (exitCode is 1 or 2) return exitCode;
             return null;
         }
 

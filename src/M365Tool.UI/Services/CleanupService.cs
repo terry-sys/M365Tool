@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -43,6 +42,7 @@ namespace Office365CleanupTool.Services
 
         public async Task RunAsync(string extractPath, UiLanguage language = UiLanguage.Chinese)
         {
+            using var operation = MaintenanceCoordinator.Shared.Begin(language);
             OnProgressChanged(T(language, "开始清理流程...", "Starting cleanup flow..."), 0);
 
             OnProgressChanged(T(language, "创建临时目录...", "Creating temp directory..."), 10);
@@ -83,18 +83,8 @@ namespace Office365CleanupTool.Services
             await ExecuteScriptAsync(language, "cmd.exe", "/C", Path.Combine(extractPath, @"WPJCleanUp\WPJCleanUp\WPJCleanUp.cmd"));
         }
 
-        private async Task DownloadFileAsync(string url, string filePath)
-        {
-            using (var client = new HttpClient())
-            using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
-                using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    await response.Content.CopyToAsync(fileStream);
-                }
-            }
-        }
+        private Task DownloadFileAsync(string url, string filePath) =>
+            ToolDownloadService.DownloadAsync(url, filePath, CancellationToken.None);
 
         private async Task ExtractFileAsync(string zipPath, string extractPath)
         {

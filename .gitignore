@@ -3,6 +3,7 @@
 **/obj/
 **/out/
 **/publish/
+**/TestResults/
 artifacts/
 
 # IDE / editor
@@ -33,5 +34,8 @@ releases/
 
 # Local-only materials
 docs/
-tests/
+tests/*
+!tests/README.md
+!tests/PortalLoginRegressionTests.cjs
+!tests/M365Tool.Application.Tests/
 tools/

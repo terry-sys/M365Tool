@@ -180,8 +180,8 @@ namespace Office365CleanupTool
 
             _lblResultTitle.Text = T("处理结果", "Results");
             if (string.IsNullOrWhiteSpace(_txtResult.Text) ||
-                _txtResult.Text.Contains("查看 Teams", StringComparison.OrdinalIgnoreCase) ||
-                _txtResult.Text.Contains("View Teams", StringComparison.OrdinalIgnoreCase))
+                _txtResult.Text == "可以在这里查看 Teams 处理结果、已关闭进程、已处理目录和下一步建议。" ||
+                _txtResult.Text == "View Teams results, closed processes, processed folders and next-step suggestions here.")
             {
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Info);
                 _lblResultStatus.Text = T("等待执行", "Ready");
@@ -189,6 +189,7 @@ namespace Office365CleanupTool
                     "可以在这里查看 Teams 处理结果、已关闭进程、已处理目录和下一步建议。",
                     "View Teams results, closed processes, processed folders and next-step suggestions here.");
             }
+            LayoutControls();
         }
 
         public void PrepareForDisplay()
@@ -261,8 +262,9 @@ namespace Office365CleanupTool
                 helperStacked ? S(36) : S(24));
             _btnOpenCacheFolder.Size = WorkbenchUi.ScaleSize(new Size(146, 42), scale);
             _btnOpenCacheFolder.Location = helperStacked
-                ? new Point(S(20), S(76))
+                ? new Point(S(20), _lblHelperDescription.Bottom + S(8))
                 : new Point(_helperCard.Width - _btnOpenCacheFolder.Width - S(20), S(18));
+            _helperCard.Height = Math.Max(_helperCard.Height, _btnOpenCacheFolder.Bottom + S(12));
 
             _resultCard.Location = new Point(contentLeft, _helperCard.Bottom + S(16));
             int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top, 252, 430, scale);
@@ -306,7 +308,11 @@ namespace Office365CleanupTool
                 _txtResult.Text = result.Message;
 
                 MessageBox.Show(
-                    result.Success ? T("Teams 已完成重置并清理缓存。", "Teams reset and cache cleanup completed.") : T("Teams 处理已执行，请查看结果详情。", "Teams processing completed. Please review details."),
+                    result.Success
+                        ? result.ResetSucceeded
+                            ? T("Teams 已完成重置并清理缓存。", "Teams reset and cache cleanup completed.")
+                            : T("Teams 缓存清理已完成；应用重置步骤已跳过。", "Teams cache cleanup completed; app reset was skipped.")
+                        : T("Teams 处理已执行，请查看结果详情。", "Teams processing completed. Please review details."),
                     result.Success ? T("完成", "Done") : T("提示", "Info"),
                     MessageBoxButtons.OK,
                     result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Warning);

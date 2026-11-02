@@ -186,8 +186,8 @@ namespace Office365CleanupTool
 
             _lblResultTitle.Text = T("处理结果", "Results");
             if (string.IsNullOrWhiteSpace(_txtResult.Text) ||
-                _txtResult.Text.Contains("查看 Outlook", StringComparison.OrdinalIgnoreCase) ||
-                _txtResult.Text.Contains("View Outlook", StringComparison.OrdinalIgnoreCase))
+                _txtResult.Text == "可以在这里查看 Outlook 扫描结果、返回码以及日志目录。" ||
+                _txtResult.Text == "View Outlook scan results, return codes and log folder here.")
             {
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Info);
                 _lblResultStatus.Text = T("等待执行", "Ready");
@@ -195,6 +195,7 @@ namespace Office365CleanupTool
                     "可以在这里查看 Outlook 扫描结果、返回码以及日志目录。",
                     "View Outlook scan results, return codes and log folder here.");
             }
+            LayoutControls();
         }
 
         public void PrepareForDisplay()
@@ -265,7 +266,8 @@ namespace Office365CleanupTool
             _lblLastLogPath.Location = new Point(S(20), S(42));
             _lblLastLogPath.Size = new Size(availableWidth - S(40), S(36));
             _btnOpenLogFolder.Size = WorkbenchUi.ScaleSize(new Size(146, 42), scale);
-            _btnOpenLogFolder.Location = new Point(S(20), S(76));
+            _btnOpenLogFolder.Location = new Point(S(20), _lblLastLogPath.Bottom + S(8));
+            _logCard.Height = Math.Max(_logCard.Height, _btnOpenLogFolder.Bottom + S(12));
 
             _resultCard.Location = new Point(contentLeft, _logCard.Bottom + S(18));
             int resultHeight = WorkbenchUi.GetAdaptiveResultCardHeight(viewportHeight, _resultCard.Top, 252, 430, scale);
@@ -298,8 +300,8 @@ namespace Office365CleanupTool
         {
             await RunScenarioAsync(
                 T(
-                    "\u8fd9\u4f1a\u8c03\u7528 Microsoft Get Help \u5b98\u65b9\u573a\u666f\uff0c\u4ee5\u517c\u5bb9\u6a21\u5f0f\u6267\u884c Outlook \u626b\u63cf\u5e76\u751f\u6210\u8bca\u65ad\u62a5\u544a\u3002\n\n\u662f\u5426\u7ee7\u7eed\uff1f",
-                    "This runs official Microsoft Get Help scenario in compatibility mode.\n\nContinue?"),
+                    "\u8fd9\u4f1a\u6267\u884c Outlook \u79bb\u7ebf\u626b\u63cf\u3002\u82e5\u8bca\u65ad\u5de5\u5177\u4e0d\u652f\u6301\u79bb\u7ebf\u6a21\u5f0f\uff0c\u5c06\u505c\u6b62\u64cd\u4f5c\u3002\n\n\u662f\u5426\u7ee7\u7eed\uff1f",
+                    "This runs an Outlook offline scan. If the diagnostic tool does not support offline mode, the operation will stop.\n\nContinue?"),
                 T("确认执行 Outlook 离线扫描", "Confirm Outlook Offline Scan"),
                 T("正在执行 Outlook 离线扫描，请稍候...", "Running Outlook offline scan, please wait..."),
                 () => _outlookDiagnosticsService.RunOutlookScanAsync(true, _language));

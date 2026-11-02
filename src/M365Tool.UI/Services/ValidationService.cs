@@ -16,7 +16,7 @@ namespace Office365CleanupTool.Services
             return report.IsSuccess;
         }
 
-        public async Task<ValidationReport> GetValidationReportAsync(UiLanguage language = UiLanguage.Chinese)
+        public virtual async Task<ValidationReport> GetValidationReportAsync(UiLanguage language = UiLanguage.Chinese)
         {
             var items = new List<ValidationCheckResult>();
 

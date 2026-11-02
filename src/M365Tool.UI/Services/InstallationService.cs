@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Office365CleanupTool.Models;
@@ -13,7 +12,6 @@ namespace Office365CleanupTool.Services
 {
     public class InstallationService
     {
-        private const string OdtDetailsUrl = "https://www.microsoft.com/en-us/download/details.aspx?id=49117";
         private const string OdtInstallerFileName = "ODTSetup.exe";
         private const string OdtSetupExecutableName = "setup.exe";
         private const string SessionLogFileName = "install-session.log";
@@ -32,13 +30,16 @@ namespace Office365CleanupTool.Services
         public async Task<InstallationExecutionResult> InstallOfficeAsync(
             InstallationConfig config,
             IReadOnlyList<string> excludeApps,
-            UiLanguage language = UiLanguage.Chinese)
+            UiLanguage language = UiLanguage.Chinese,
+            CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (config == null)
             {
                 throw new ArgumentNullException(nameof(config));
             }
 
+            using var operation = MaintenanceCoordinator.Shared.Begin(language);
             string sessionDirectory = PrepareSessionDirectory();
             string logFilePath = Path.Combine(sessionDirectory, SessionLogFileName);
             using var logWriter = CreateLogWriter(logFilePath);
@@ -74,18 +75,8 @@ namespace Office365CleanupTool.Services
                 string odtInstallerPath = Path.Combine(odtCacheDirectory, OdtInstallerFileName);
                 string setupPath = Path.Combine(config.DownloadPath, OdtSetupExecutableName);
 
-                InstallationExecutionResult? odtPreparationFailure = await EnsureOdtReadyAsync(
-                    logWriter,
-                    config.DownloadPath,
-                    odtInstallerPath,
-                    setupPath,
-                    logFilePath,
-                    language);
-
-                if (odtPreparationFailure != null)
-                {
-                    return odtPreparationFailure;
-                }
+                await new OdtToolService(_scriptRunner).PrepareAsync(config.DownloadPath, cancellationToken,
+                    message => ReportProgress(logWriter, message, 35), language);
 
                 string odtArguments = config.DownloadOnly
                     ? $"/download \"{configurationXmlPath}\""
@@ -99,6 +90,8 @@ namespace Office365CleanupTool.Services
                 var executionResult = await _scriptRunner.RunAsync(new ScriptExecutionRequest
                 {
                     FileName = setupPath,
+                    CancellationToken = cancellationToken,
+                    Timeout = TimeSpan.FromHours(1),
                     Arguments = odtArguments,
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden,
@@ -122,6 +115,15 @@ namespace Office365CleanupTool.Services
                 });
 
                 LogProcessResult(logWriter, phaseName, executionResult.StandardOutput, executionResult.StandardError, language);
+
+                if (executionResult.TimedOut || executionResult.WasCanceled)
+                {
+                    string stopped = T(language,
+                        $"已停止等待；已启动的安装/下载可能仍在后台运行（进程 {executionResult.ProcessId}）。请确认结束后再重试。",
+                        $"Monitoring stopped; installation/download may still be running (process {executionResult.ProcessId}). Check before retrying.");
+                    Log(logWriter, stopped);
+                    return new InstallationExecutionResult { MonitoringStopped = true, Message = stopped, LogFilePath = logFilePath };
+                }
 
                 if (!executionResult.IsSuccess)
                 {
@@ -149,6 +151,11 @@ namespace Office365CleanupTool.Services
                     config.DownloadOnly,
                     language);
             }
+            catch (OperationCanceledException)
+            {
+                Log(logWriter, "Preparation was canceled.");
+                throw;
+            }
             catch (Exception ex)
             {
                 Log(logWriter, T(language, "发生异常", "Exception") + ": " + ex);
@@ -156,111 +163,10 @@ namespace Office365CleanupTool.Services
             }
         }
 
-        private async Task<InstallationExecutionResult?> EnsureOdtReadyAsync(
-            StreamWriter logWriter,
-            string workingDirectory,
-            string odtInstallerPath,
-            string setupPath,
-            string logFilePath,
-            UiLanguage language)
-        {
-            if (File.Exists(setupPath))
-            {
-                ReportProgress(logWriter, T(language, "检测到已解压的 ODT，复用现有 setup.exe。", "Detected extracted ODT; reusing existing setup.exe."), 25);
-                return null;
-            }
-
-            ReportProgress(logWriter, T(language, "正在获取微软官方 ODT 下载地址...", "Fetching official Microsoft ODT download URL..."), 25);
-            string odtDownloadUrl = await GetOdtDownloadUrlAsync();
-            Log(logWriter, T(language, $"ODT 下载地址: {odtDownloadUrl}", $"ODT download URL: {odtDownloadUrl}"));
-
-            if (File.Exists(odtInstallerPath) && new FileInfo(odtInstallerPath).Length > 0)
-            {
-                ReportProgress(logWriter, T(language, "检测到本地 ODT 安装包缓存，跳过重复下载。", "Detected local ODT package cache; skipping re-download."), 35);
-            }
-            else
-            {
-                ReportProgress(logWriter, T(language, "正在下载 Office Deployment Tool...", "Downloading Office Deployment Tool..."), 35);
-                await DownloadFileAsync(odtDownloadUrl, odtInstallerPath);
-                Log(logWriter, T(language, $"ODT 安装包已下载到: {odtInstallerPath}", $"ODT package downloaded to: {odtInstallerPath}"));
-            }
-
-            ReportProgress(logWriter, T(language, "正在解压 Office Deployment Tool...", "Extracting Office Deployment Tool..."), 50);
-            var extractResult = await _scriptRunner.RunAsync(new ScriptExecutionRequest
-            {
-                FileName = odtInstallerPath,
-                Arguments = $"/quiet /extract:\"{workingDirectory}\"",
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden,
-                WorkingDirectory = workingDirectory
-            });
-
-            LogProcessResult(logWriter, T(language, "ODT 解压", "ODT Extract"), extractResult.StandardOutput, extractResult.StandardError, language);
-
-            if (!extractResult.IsSuccess)
-            {
-                string diagnostic = BuildDiagnosticMessage(
-                    T(language, "ODT 解压失败。", "ODT extract failed."),
-                    workingDirectory,
-                    odtInstallerPath,
-                    extractResult.StandardOutput,
-                    extractResult.StandardError,
-                    language);
-
-                return FailureWithLog(logWriter, logFilePath, diagnostic, language, extractResult.StandardOutput, extractResult.StandardError);
-            }
-
-            if (!File.Exists(setupPath))
-            {
-                string diagnostic = BuildDiagnosticMessage(T(language, "未找到解压后的 setup.exe。", "setup.exe was not found after extraction."), workingDirectory, odtInstallerPath, language: language);
-                return FailureWithLog(logWriter, logFilePath, diagnostic, language);
-            }
-
-            return null;
-        }
-
         private static void WriteConfigurationXml(InstallationConfig config, IReadOnlyList<string> excludeApps, string configurationXmlPath)
         {
             XDocument xml = OfficeDeploymentXmlBuilder.Build(config, excludeApps);
             xml.Save(configurationXmlPath);
-        }
-
-        private static async Task DownloadFileAsync(string url, string filePath)
-        {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("M365Tool/1.0");
-
-            using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-
-            await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await response.Content.CopyToAsync(fileStream);
-        }
-
-        private static async Task<string> GetOdtDownloadUrlAsync()
-        {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("M365Tool/1.0");
-            string pageContent = await client.GetStringAsync(OdtDetailsUrl);
-
-            string[] patterns =
-            {
-                "\"url\":\"(https:\\\\/\\\\/download\\\\.microsoft\\\\.com\\\\/[^\\\"]*officedeploymenttool[^\\\"]*)\"",
-                "href=\"(https://download\\.microsoft\\.com/[^\"]*officedeploymenttool[^\"]*)\"",
-                "href='(https://download\\.microsoft\\.com/[^']*officedeploymenttool[^']*)'",
-                "(https://download\\.microsoft\\.com/\\S*officedeploymenttool\\S*\\.exe)"
-            };
-
-            foreach (string pattern in patterns)
-            {
-                var match = Regex.Match(pageContent, pattern, RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    return match.Groups[1].Value.Replace("\\/", "/");
-                }
-            }
-
-            throw new InvalidOperationException("未能从微软官方下载页解析出 ODT 下载地址。");
         }
 
         private static string PrepareSessionDirectory()
@@ -276,7 +182,7 @@ namespace Office365CleanupTool.Services
 
         private static void Log(StreamWriter writer, string message)
         {
-            writer.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
+            lock (writer) writer.WriteLine($"[{DateTime.Now:HH:mm:ss}] {message}");
         }
 
         private void ReportProgress(StreamWriter writer, string message, int progress)
@@ -465,13 +371,15 @@ namespace Office365CleanupTool.Services
     {
         public bool Success { get; private set; }
 
-        public string Message { get; private set; } = string.Empty;
+        public string Message { get; internal set; } = string.Empty;
 
         public string StandardOutput { get; private set; } = string.Empty;
 
         public string StandardError { get; private set; } = string.Empty;
 
-        public string LogFilePath { get; private set; } = string.Empty;
+        public string LogFilePath { get; internal set; } = string.Empty;
+
+        public bool MonitoringStopped { get; internal set; }
 
         public bool DownloadOnly { get; private set; }
 

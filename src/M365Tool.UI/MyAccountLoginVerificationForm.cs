@@ -1,5 +1,7 @@
 using System;
 using System.Drawing;
+using System.Diagnostics;
+using System.Collections.Generic;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Text.Json;
@@ -21,9 +23,6 @@ namespace Office365CleanupTool
         private const int SignInPageRenderTimeoutMs = 45000;
         private const double SignInPageZoomFactor = 0.85d;
 
-        private static readonly Regex EmailRegex = new(
-            @"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant);
         private static readonly Regex NumericLikeRegex = new(
             @"^\d+(?:[.,]\d+)?$",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -37,14 +36,30 @@ namespace Office365CleanupTool
         private readonly System.Windows.Forms.Timer _verificationTimer;
         private readonly System.Windows.Forms.Timer _navigationWatchdogTimer;
         private string _userDataFolder = string.Empty;
+        private Task? _browserInitializationTask;
+        private bool _signInSurfaceReady;
+        private bool _isCheckingSurface;
+        private readonly Stopwatch _loadClock = Stopwatch.StartNew();
+        private readonly List<string> _loadTimings = new();
+        private readonly HashSet<string> _timedStages = new();
+        private readonly string _loadTraceId = Guid.NewGuid().ToString("N");
+        private static readonly object LoadTraceLock = new();
+        private long _clickStartedAt = -1;
+        private int _flushedTimingCount;
         private bool _initialized;
         private bool _navigationStarted;
         private bool _navigationCompleted;
         private bool _isCompletingVerification;
+        private bool _isCheckingVerification;
+        private int _verificationNavigationId;
+        private bool _hasVisitedChinaSignIn;
+        private bool _hasReturnedFromChinaSignIn;
+        private Uri? _lastNavigationTarget;
+        private string _candidateAccount = string.Empty;
         private bool _isProfileSyncing;
         private bool _deferredProfileSyncStarted;
+        private bool _resourcesDisposed;
         private CoreWebView2WebErrorStatus? _lastNavigationErrorStatus;
-        private string _candidateAccount = string.Empty;
         private string _lastAvatarSource = string.Empty;
         private string _lastAvatarRect = string.Empty;
         private string _lastProfileCandidates = string.Empty;
@@ -59,6 +74,8 @@ namespace Office365CleanupTool
         public byte[]? VerifiedAvatarBytes { get; private set; }
 
         public bool HasVerifiedProfileDisplayName { get; private set; }
+
+        protected override bool ShowWithoutActivation => _deferredProfileSyncStarted;
 
         public MyAccountLoginVerificationForm(UiLanguage language)
         {
@@ -83,7 +100,7 @@ namespace Office365CleanupTool
             _statusLabel = new Label
             {
                 Dock = DockStyle.Fill,
-                Text = "正在初始化 21V 登录页面...",
+                Text = T("正在初始化 21V 登录页面...", "Initializing 21V sign-in page..."),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Font = WorkbenchUi.CreateUiFont(11F),
                 ForeColor = Color.FromArgb(86, 105, 130),
@@ -92,7 +109,7 @@ namespace Office365CleanupTool
 
             _verificationTimer = new System.Windows.Forms.Timer
             {
-                Interval = 1000
+                Interval = 250
             };
             _verificationTimer.Tick += VerificationTimer_Tick;
 
@@ -108,20 +125,32 @@ namespace Office365CleanupTool
             Shown += async (_, _) => await StartMandatorySignInFlowAsync();
         }
 
-        private async Task StartMandatorySignInFlowAsync()
+        protected override void OnLoad(EventArgs e)
         {
-            if (_initialized)
-            {
-                return;
-            }
+            FitToWorkingArea(Screen.FromControl(Owner ?? this).WorkingArea);
+            base.OnLoad(e);
+        }
 
-            _initialized = true;
-            _navigationStarted = false;
-            _navigationCompleted = false;
+        internal void FitToWorkingArea(Rectangle workingArea)
+        {
+            var fittedSize = new Size(Math.Min(Width, workingArea.Width), Math.Min(Height, workingArea.Height));
+            MinimumSize = Size.Empty;
+            MaximumSize = Size.Empty;
+            Size = fittedSize;
+            MinimumSize = Size;
+            MaximumSize = Size;
+        }
 
+        internal Task PrepareAsync()
+        {
+            if (IsDisposed || Disposing) return Task.FromException(new ObjectDisposedException(nameof(MyAccountLoginVerificationForm)));
+            return _browserInitializationTask ??= InitializeBrowserAsync();
+        }
+
+        private async Task InitializeBrowserAsync()
+        {
             try
             {
-                SetStatus(T("正在初始化 21V 登录页面...", "Initializing 21V sign-in page..."));
                 _userDataFolder = Path.Combine(
                     Path.GetTempPath(),
                     "M365Tool",
@@ -133,24 +162,64 @@ namespace Office365CleanupTool
                 {
                     AllowSingleSignOnUsingOSPrimaryAccount = false
                 };
+                RecordLoadTiming("environment-start");
                 CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, _userDataFolder, options);
+                RecordLoadTiming("environment-ready");
+                if (IsDisposed || Disposing) return;
+                _ = _webView.Handle;
                 await _webView.EnsureCoreWebView2Async(env);
+                RecordLoadTiming("webview-ready");
+                if (IsDisposed || Disposing) return;
                 _webView.ZoomFactor = SignInPageZoomFactor;
 
-                ConfigureWebView();
+                await ConfigureWebViewAsync();
+                RecordLoadTiming("browser-prepared");
+                if (IsDisposed || Disposing) return;
+            }
+            catch (Exception) when (IsDisposed || Disposing)
+            {
+                // Closing the owner can cancel native controller creation during warm-up.
+            }
+            finally
+            {
+                if (IsDisposed || Disposing) TryDeleteUserDataFolder();
+            }
+        }
+
+        private async Task StartMandatorySignInFlowAsync()
+        {
+            if (_initialized)
+            {
+                return;
+            }
+
+            _initialized = true;
+            _clickStartedAt = _loadClock.ElapsedMilliseconds;
+            RecordLoadTiming(_browserInitializationTask?.IsCompletedSuccessfully == true ? "click-prepared" : "click-cold");
+            _navigationStarted = false;
+            _navigationCompleted = false;
+
+            try
+            {
+                SetStatus(T("正在初始化 21V 登录页面...", "Initializing 21V sign-in page..."));
+                StartNavigationWatchdog(SignInPageLoadTimeoutMs);
+                await PrepareAsync();
+                if (IsDisposed || Disposing) return;
 
                 SetStatus(T("正在打开 21V 登录页面...", "Opening 21V sign-in page..."));
+                RecordLoadTiming("navigation-requested");
                 _webView.CoreWebView2.Navigate(MyAccountUrl);
                 StartNavigationWatchdog(SignInPageLoadTimeoutMs);
                 _verificationTimer.Start();
             }
             catch (WebView2RuntimeNotFoundException ex)
             {
+                if (IsDisposed || Disposing) return;
                 MessageBox.Show(
                     T(
-                        "WebView2 Runtime was not found. Install/repair Microsoft Edge WebView2 Runtime and retry.\\r\\n\\r\\nDetails: " + ex.Message,
-                        "WebView2 Runtime was not found. Install/repair Microsoft Edge WebView2 Runtime and retry.\\r\\n\\r\\nDetails: " + ex.Message),
-                    T("Runtime Missing", "Runtime Missing"),
+                        "未找到 WebView2 Runtime，请安装或修复 Microsoft Edge WebView2 Runtime 后重试。\r\n\r\n详细信息：" + ex.Message,
+                        "WebView2 Runtime was not found. Install/repair Microsoft Edge WebView2 Runtime and retry.\r\n\r\nDetails: " + ex.Message),
+                    T("缺少运行时", "Runtime Missing"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 DialogResult = DialogResult.Cancel;
@@ -158,9 +227,10 @@ namespace Office365CleanupTool
             }
             catch (Exception ex)
             {
+                if (IsDisposed || Disposing) return;
                 MessageBox.Show(
-                    T("Unable to open 21V sign-in page: " + ex.Message, "Unable to open 21V sign-in page: " + ex.Message),
-                    T("Open Failed", "Open Failed"),
+                    T("无法打开 21V 登录页面：" + ex.Message, "Unable to open 21V sign-in page: " + ex.Message),
+                    T("打开失败", "Open Failed"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 DialogResult = DialogResult.Cancel;
@@ -168,25 +238,55 @@ namespace Office365CleanupTool
             }
         }
 
-        private void ConfigureWebView()
+        private async Task ConfigureWebViewAsync()
         {
             CoreWebView2 core = _webView.CoreWebView2;
             core.Settings.IsScriptEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
             _webView.ZoomFactor = SignInPageZoomFactor;
-            core.NavigationStarting += (_, _) =>
+            core.NavigationStarting += (_, e) =>
             {
+                _verificationNavigationId++;
+                _signInSurfaceReady = false;
+                _verificationTimer.Interval = 250;
+                RecordLoadTiming("navigation-started");
                 _navigationStarted = true;
                 _navigationCompleted = false;
                 _lastNavigationErrorStatus = null;
+                Uri.TryCreate(e.Uri, UriKind.Absolute, out Uri? target);
+                if (IsChinaSignInHost(target))
+                {
+                    _hasVisitedChinaSignIn = true;
+                    RecordLoadTiming("login-host-reached");
+                    _hasReturnedFromChinaSignIn = false;
+                }
+                else if (IsVerificationHost(target) && _hasVisitedChinaSignIn
+                    && IsChinaSignInHost(_lastNavigationTarget ?? TryGetCurrentUri()))
+                    _hasReturnedFromChinaSignIn = true;
+                _lastNavigationTarget = target;
+                // Keep the renderer active behind the opaque loading label so page scripts are not background-throttled.
+                if (!IsVerified && !_isProfileSyncing) _webView.Visible = ShouldShowSignInContent(target);
                 StartNavigationWatchdog(SignInPageLoadTimeoutMs);
-                SetStatus(T("21V 登录页面加载中...", "Loading 21V sign-in page..."));
+                SetStatus(IsVerificationHost(target) && _hasReturnedFromChinaSignIn
+                    ? T("正在确认登录结果...", "Confirming sign-in...")
+                    : T("正在连接 21V 验证服务...", "Connecting to 21V sign-in..."));
+                if (_hasReturnedFromChinaSignIn && IsVerificationHost(target))
+                    this.BeginInvokeWhenReady(() => _ = TryMarkVerifiedAsync(target));
+            };
+            core.SourceChanged += (_, _) =>
+            {
+                if (!IsVerified && !_isProfileSyncing && IsVerificationHost(TryGetCurrentUri()))
+                {
+                    _webView.Visible = false;
+                    SetStatus(T("正在确认登录结果...", "Confirming sign-in..."));
+                    _ = TryMarkVerifiedAsync(TryGetCurrentUri());
+                }
             };
             core.ContentLoading += (_, _) =>
             {
-                if (!_isProfileSyncing && !IsVerified)
+                if (!_isProfileSyncing && !IsVerified && !_signInSurfaceReady)
                 {
-                    SetStatus(T("21V 登录页面加载中...", "Loading 21V sign-in page..."));
+                    SetStatus(T("正在加载登录表单...", "Loading the sign-in form..."));
                 }
             };
             core.NewWindowRequested += (_, e) =>
@@ -215,7 +315,10 @@ namespace Office365CleanupTool
                     core.Navigate(e.Uri);
                 }
             };
+            core.DOMContentLoaded += WebView_DOMContentLoaded;
             core.NavigationCompleted += WebView_NavigationCompleted;
+            core.WebMessageReceived += SignInAccount_WebMessageReceived;
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(SignInAccountCaptureScript);
         }
 
         private void StartNavigationWatchdog(int interval)
@@ -244,18 +347,27 @@ namespace Office365CleanupTool
                 return;
             }
 
+            if (!ShouldShowSignInContent(TryGetCurrentUri()))
+            {
+                _webView.Visible = false;
+                return;
+            }
+
             _statusLabel.Visible = false;
+            _webView.Visible = true;
             _webView.BringToFront();
         }
 
         private async void NavigationWatchdogTimer_Tick(object? sender, EventArgs e)
         {
             _navigationWatchdogTimer.Stop();
-            if (_navigationCompleted || IsVerified)
+            if (_signInSurfaceReady || IsVerified || _isProfileSyncing)
             {
                 return;
             }
 
+            RecordLoadTiming("load-timeout");
+            FlushLoadTimings();
             string detail = _navigationStarted
                 ? T("登录页已开始加载，但长时间没有完成。", "The sign-in page started loading but did not finish.")
                 : T("WebView2 初始化或登录页加载没有开始。", "WebView2 initialization or sign-in page loading did not start.");
@@ -271,9 +383,21 @@ namespace Office365CleanupTool
 
         private async void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
+            int navigationId = _verificationNavigationId;
+            RecordLoadTiming("navigation-completed");
             _navigationStarted = true;
             _navigationCompleted = e.IsSuccess;
             _lastNavigationErrorStatus = e.IsSuccess ? null : e.WebErrorStatus;
+            Uri? uri = TryGetCurrentUri();
+            if (IsVerificationHost(uri) && !_isProfileSyncing)
+            {
+                SetStatus(e.IsSuccess
+                    ? T("正在确认登录结果...", "Confirming sign-in...")
+                    : T("登录结果加载失败，请关闭登录窗口后重试。", "Unable to confirm sign-in. Close this window and retry."));
+                if (e.IsSuccess) await TryMarkVerifiedAsync(uri);
+                return;
+            }
+            if (_signInSurfaceReady && !_isProfileSyncing) return;
             if (e.IsSuccess)
             {
                 if (_isProfileSyncing)
@@ -282,15 +406,15 @@ namespace Office365CleanupTool
                         "正在初始化中...",
                         "Initializing..."));
                 }
-                else if (await HasRenderedSignInSurfaceAsync())
-                {
-                    _navigationWatchdogTimer.Stop();
-                    HideStatus();
-                }
                 else
                 {
-                    _navigationCompleted = false;
-                    SetStatus(T("登录页仍在渲染，请稍候...", "The sign-in page is still rendering..."));
+                    await TryRevealSignInSurfaceAsync();
+                    if (IsDisposed || Disposing || _signInSurfaceReady || navigationId != _verificationNavigationId) return;
+                    // Completed error/help pages can be displayed without mistaking them for authentication.
+                    bool rendered = await HasRenderedSignInSurfaceAsync();
+                    if (IsDisposed || Disposing || navigationId != _verificationNavigationId || uri != TryGetCurrentUri()) return;
+                    if (rendered) { MarkSignInSurfaceReady(); return; }
+                    SetStatus(T("正在等待登录表单...", "Waiting for the sign-in form..."));
                     StartNavigationWatchdog(SignInPageRenderTimeoutMs);
                 }
             }
@@ -306,17 +430,13 @@ namespace Office365CleanupTool
                 return;
             }
 
-            Uri? uri = TryGetCurrentUri();
-            if (IsLoginHost(uri))
-            {
-                string typedAccount = await TryGetEnteredAccountAsync();
-                if (!string.IsNullOrWhiteSpace(typedAccount))
-                {
-                    _candidateAccount = typedAccount.Trim();
-                }
-            }
-
             await TryMarkVerifiedAsync(uri);
+        }
+
+        private async void WebView_DOMContentLoaded(object? sender, CoreWebView2DOMContentLoadedEventArgs e)
+        {
+            RecordLoadTiming("dom-content-loaded");
+            await TryRevealSignInSurfaceAsync();
         }
 
         private async Task<bool> HasRenderedSignInSurfaceAsync()
@@ -336,6 +456,62 @@ namespace Office365CleanupTool
                 "return document.readyState!=='loading'&&hasRealSurface&&!shellOnly?'1':'';" +
                 "} catch(e) { return ''; } })();");
             return state == "1";
+        }
+
+        private async Task TryRevealSignInSurfaceAsync()
+        {
+            Uri? uri = TryGetCurrentUri();
+            if (_isCheckingSurface || _signInSurfaceReady || IsVerified || _isProfileSyncing
+                || IsDisposed || Disposing || _webView.CoreWebView2 == null || !ShouldShowSignInContent(uri)) return;
+            int navigationId = _verificationNavigationId;
+            _isCheckingSurface = true;
+            try
+            {
+                bool ready = await TryEvalStringAsync(SignInSurfaceReadyScript) == "1";
+                if (ready && !IsDisposed && !Disposing && !IsVerified && !_isProfileSyncing
+                    && navigationId == _verificationNavigationId && uri == TryGetCurrentUri())
+                    MarkSignInSurfaceReady();
+            }
+            finally { _isCheckingSurface = false; }
+        }
+
+        private void MarkSignInSurfaceReady()
+        {
+            if (!ShouldShowSignInContent(TryGetCurrentUri()) || IsVerified || _isProfileSyncing) return;
+            _signInSurfaceReady = true;
+            _navigationWatchdogTimer.Stop();
+            _verificationTimer.Interval = 1000;
+            HideStatus();
+            RecordLoadTiming("surface-ready");
+            FlushLoadTimings();
+        }
+
+        private void RecordLoadTiming(string stage)
+        {
+            if (!_timedStages.Add(stage)) return;
+            long elapsed = _loadClock.ElapsedMilliseconds;
+            string sinceClick = _clickStartedAt < 0 ? "-" : (elapsed - _clickStartedAt).ToString();
+            _loadTimings.Add($"{DateTime.UtcNow:O}\tSession={_loadTraceId}\tStage={stage}\tElapsedMs={elapsed}\tSinceClickMs={sinceClick}");
+        }
+
+        private void FlushLoadTimings()
+        {
+            if (_clickStartedAt < 0 || _flushedTimingCount == _loadTimings.Count) return;
+            string[] lines = _loadTimings.Skip(_flushedTimingCount).ToArray();
+            _flushedTimingCount = _loadTimings.Count;
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "M365Tool", "Logs");
+                    lock (LoadTraceLock)
+                    {
+                        Directory.CreateDirectory(directory);
+                        File.AppendAllLines(Path.Combine(directory, "AuthLoadTiming.log"), lines);
+                    }
+                }
+                catch { /* Diagnostics must not delay or interrupt sign-in. */ }
+            });
         }
 
         private async Task<string> CollectWebViewDiagnosticsAsync()
@@ -366,52 +542,142 @@ namespace Office365CleanupTool
 
         private async Task TryMarkVerifiedAsync(Uri? uri)
         {
-            if (IsVerified || _isCompletingVerification || !IsVerificationHost(uri))
+            if (_isCheckingVerification || !CanCheckSignInReturn(uri))
             {
                 return;
             }
 
-            string account = IsValidAccount(_candidateAccount)
-                ? _candidateAccount
-                : await ExtractAccountAsync();
-            if (string.IsNullOrWhiteSpace(account))
+            int navigationId = _verificationNavigationId;
+            _isCheckingVerification = true;
+            try
             {
-                await TryOpenMyAccountProfileMenuAsync();
-                account = await ExtractAccountAsync();
+                bool authenticatedSession = await HasMicrosoftSignInSessionAsync();
+                if (navigationId != _verificationNavigationId || !CanCheckSignInReturn(uri)) return;
+                // Profile rendering is independent of authentication. Only use it as an
+                // identity fallback when the sign-in page did not supply an email address.
+                if (authenticatedSession && !IsValidAccount(_candidateAccount)
+                    && CanReadPortalIdentity(TryGetCurrentUri(), _navigationCompleted, _lastNavigationErrorStatus.HasValue))
+                    _candidateAccount = await ReadSignedInAccountAsync();
+                if (navigationId != _verificationNavigationId || !CanCheckSignInReturn(uri)) return;
+                TryCompleteCredentialVerification(uri, authenticatedSession);
             }
-
-            if (string.IsNullOrWhiteSpace(account))
+            catch (Exception) when (IsDisposed || Disposing)
             {
-                account = _candidateAccount;
-                if (string.IsNullOrWhiteSpace(account))
-                {
-                    account = await ExtractDisplayNameAsync();
-                    if (string.IsNullOrWhiteSpace(account))
-                    {
-                        return;
-                    }
-                }
+                // Closing the sign-in window may complete while its session check is awaiting.
             }
-
-            account = account.Trim();
-            if (!IsValidAccount(account))
+            finally
             {
-                // Fallback display name is allowed for UI, but not as account identity.
-                string displayName = CleanNameCandidate(account);
-                if (string.IsNullOrWhiteSpace(displayName))
-                {
-                    return;
-                }
-
-                CompleteVerification(string.Empty, displayName);
-                return;
+                _isCheckingVerification = false;
             }
-
-            CompleteVerification(account, ExtractUserNameFromAccount(account));
         }
+
+        private bool CanCheckSignInReturn(Uri? uri) =>
+            !IsDisposed && !Disposing && !IsVerified && !_isCompletingVerification
+            && _webView.CoreWebView2 != null
+            && _hasReturnedFromChinaSignIn && IsVerificationHost(uri);
+
+        internal static bool CanReadPortalIdentity(Uri? uri, bool navigationCompleted, bool hasNavigationError) =>
+            navigationCompleted && !hasNavigationError && IsVerificationHost(uri);
+
+        internal static bool ShouldShowSignInContent(Uri? uri) =>
+            uri is { IsAbsoluteUri: true } && uri.Scheme == Uri.UriSchemeHttps && !IsVerificationHost(uri);
+
+        internal bool TryCompleteCredentialVerification(Uri? uri, bool authenticatedSession)
+        {
+            if (IsDisposed || Disposing || IsVerified || !_hasVisitedChinaSignIn || !_hasReturnedFromChinaSignIn
+                || !authenticatedSession || !IsVerificationHost(uri)
+                || !IsValidAccount(_candidateAccount)) return false;
+            CompleteVerification(_candidateAccount.Trim(), ExtractUserNameFromAccount(_candidateAccount));
+            return true;
+        }
+
+        private async Task<bool> HasMicrosoftSignInSessionAsync()
+        {
+            if (!_hasVisitedChinaSignIn || _webView.CoreWebView2 == null) return false;
+            foreach (string url in new[] { "https://login.partner.microsoftonline.cn/", "https://login.chinacloudapi.cn/", "https://login.microsoftonline.cn/" })
+            {
+                var cookies = await _webView.CoreWebView2.CookieManager.GetCookiesAsync(url);
+                foreach (var cookie in cookies)
+                    if (cookie.IsHttpOnly && IsAuthenticationSessionCookie(cookie.Name)) return true;
+            }
+            return false;
+        }
+
+        internal static bool IsAuthenticationSessionCookie(string name) =>
+            name.Equals("ESTSAUTH", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("ESTSAUTHPERSISTENT", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("estsStateTransient", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("estsStatePersistent", StringComparison.OrdinalIgnoreCase);
+
+        internal static bool IsChinaSignInHost(Uri? uri) => uri is { IsAbsoluteUri: true }
+            && uri.Scheme == Uri.UriSchemeHttps
+            && (uri.Host.Equals("login.partner.microsoftonline.cn", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("login.chinacloudapi.cn", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.Equals("login.microsoftonline.cn", StringComparison.OrdinalIgnoreCase));
+
+        private void SignInAccount_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            if (IsDisposed || Disposing || IsVerified || !Uri.TryCreate(e.Source, UriKind.Absolute, out Uri? source)
+                || !IsChinaSignInHost(source)) return;
+            try
+            {
+                using JsonDocument message = JsonDocument.Parse(e.WebMessageAsJson);
+                JsonElement root = message.RootElement;
+                if (root.GetProperty("kind").GetString() != "m365tool-signin-account") return;
+                string account = root.GetProperty("account").GetString() ?? string.Empty;
+                if (IsValidAccount(account)) _candidateAccount = account.Trim();
+            }
+            catch (JsonException) { }
+            catch (KeyNotFoundException) { }
+            catch (InvalidOperationException) { }
+        }
+
+        internal const string SignInSurfaceReadyScript =
+            "(() => { try {" +
+            "const visible=el=>{const r=el.getBoundingClientRect();const s=getComputedStyle(el);" +
+            "return r.width>1&&r.height>1&&r.left<innerWidth&&r.top<innerHeight&&r.right>0&&r.bottom>0" +
+            "&&s.display!=='none'&&s.visibility!=='hidden'&&Number(s.opacity)!==0;};" +
+            "return Array.from(document.querySelectorAll('input:not([type=hidden]),button,[role=button]'))" +
+            ".some(el=>visible(el)&&!el.disabled&&el.getAttribute('aria-disabled')!=='true')?'1':'';" +
+            "}catch(e){return '';}})();";
+
+        internal const string SignInAccountCaptureScript =
+            "(() => {" +
+            "if(location.protocol!=='https:'||!['login.partner.microsoftonline.cn','login.chinacloudapi.cn','login.microsoftonline.cn'].includes(location.hostname))return;" +
+            "const emit=()=>{const input=document.querySelector('input[type=\"email\"],input[name=\"loginfmt\"],input[name=\"UserName\"],#i0116');" +
+            "const identity=document.querySelector('#displayName,#userName,.identity');" +
+            "const text=(input&&input.value)||identity&&(identity.innerText||identity.textContent)||'';" +
+            "const match=String(text).match(/[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}/);" +
+            "if(match&&window.chrome&&window.chrome.webview)window.chrome.webview.postMessage({kind:'m365tool-signin-account',account:match[0]});};" +
+            "for(const name of ['input','change','click','submit','DOMContentLoaded'])document.addEventListener(name,emit,true);emit();})();";
+
+        private Task<string> ReadSignedInAccountAsync() => TryEvalStringAsync(SignedInAccountScript);
+
+        internal const string SignedInAccountScript =
+            "(() => { try {" +
+            "if(document.readyState!=='complete'||location.protocol!=='https:'||location.hostname!=='myaccount.windowsazure.cn')return '';" +
+            "const visible=el=>{const r=el.getBoundingClientRect();const s=getComputedStyle(el);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none';};" +
+            "const clean=t=>String(t||'').replace(/\\s+/g,' ').trim();" +
+            "const email=el=>{if(!el||!visible(el))return '';const t=(el.innerText||el.textContent||'')+' '+(el.getAttribute('href')||'');const m=t.match(/[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}/);return m?m[0]:'';};" +
+            "const photo=document.querySelector('#profilePhoto');" +
+            "if(photo&&visible(photo)){" +
+            "const card=photo.closest('[class*=\"ms-Card\"]')||photo.closest('article,section')||photo.parentElement;" +
+            "if(card&&visible(card)){" +
+            "const signedInActions=Array.from(card.querySelectorAll('a,button,[role=\"button\"]')).some(el=>visible(el)&&/^(从所有位置注销|从所有位置退出|Sign out everywhere|Sign out of all sessions)$/i.test(clean(el.innerText||el.textContent)));" +
+            "const account=email(card.querySelector('a[href^=\"mailto:\" i]'))||email(card);" +
+            "if(signedInActions&&account)return account;}}" +
+            "const logout=Array.from(document.querySelectorAll('#mectrl_body_signOut,a[href*=\"/logout\" i],a[href*=\"signout\" i],[aria-label=\"Sign out\"],[aria-label=\"注销\"],[aria-label=\"退出登录\"]')).find(visible);" +
+            "if(!logout||!visible(logout)){" +
+            "const trigger=document.querySelector('#mectrl_main_trigger,[aria-label*=\"Account manager\" i],#mectrl_headerPicture');" +
+            "if(trigger&&visible(trigger)&&trigger.getAttribute('aria-expanded')!=='true')trigger.click();return '';}" +
+            "for(const el of document.querySelectorAll('#mectrl_currentAccount_secondary,#mectrl_currentAccount_primary')){" +
+            "const account=email(el);if(account)return account;}" +
+            "return ''; } catch(e) { return ''; } })();";
 
         private void CompleteVerification(string account, string userName)
         {
+            RecordLoadTiming("authenticated");
+            FlushLoadTimings();
             VerifiedAccount = account;
             VerifiedUserName = userName;
             VerifiedAvatarBytes = null;
@@ -438,6 +704,7 @@ namespace Office365CleanupTool
             }
 
             _deferredProfileSyncStarted = true;
+            _isProfileSyncing = true;
             _ = RunDeferredProfileSyncAsync(owner, onCompleted);
             return true;
         }
@@ -452,9 +719,10 @@ namespace Office365CleanupTool
                 byte[]? avatarBytes = await TryFetchMyAccountProfileAsync(VerifiedAccount);
                 onCompleted(VerifiedAccount, VerifiedUserName, avatarBytes, HasVerifiedProfileDisplayName);
             }
-            catch
+            catch (Exception ex)
             {
-                // Deferred profile sync is best-effort; access has already been granted.
+                _lastProfileTraceReason = "profile-exception-" + ex.GetType().Name;
+                await WriteProfileTraceAsync(VerifiedAccount, "myaccount-profile-exception", 0);
             }
             finally
             {
@@ -468,6 +736,7 @@ namespace Office365CleanupTool
             Location = new Point(-32000, -32000);
             Opacity = 0.01d;
             ShowInTaskbar = false;
+            _webView.Visible = true;
             if (!Visible)
             {
                 Show(owner);
@@ -490,74 +759,6 @@ namespace Office365CleanupTool
             }
         }
 
-        private async Task<string> ExtractAccountAsync()
-        {
-            string typedAccount = await TryGetEnteredAccountAsync();
-            if (!string.IsNullOrWhiteSpace(typedAccount))
-            {
-                return typedAccount;
-            }
-
-            string body = await TryEvalStringAsync(
-                "(() => { try { return document && document.body ? document.body.innerText : ''; } catch (e) { return ''; } })();");
-            string account = ExtractEmail(body);
-            if (!string.IsNullOrWhiteSpace(account))
-            {
-                return account;
-            }
-
-            string title = await TryEvalStringAsync(
-                "(() => { try { return document && document.title ? document.title : ''; } catch (e) { return ''; } })();");
-            account = ExtractEmail(title);
-            if (!string.IsNullOrWhiteSpace(account))
-            {
-                return account;
-            }
-
-            string source = _webView.CoreWebView2?.Source ?? string.Empty;
-            return ExtractEmail(source);
-        }
-
-        private async Task<string> ExtractDisplayNameAsync()
-        {
-            string stateJson = await TryEvalStringAsync(
-                "(() => { try { return JSON.stringify(window.__INITIAL_STATE__ || window.initialState || window.__PRELOADED_STATE__ || window.__NEXT_DATA__ || null); } catch (e) { return ''; } })();");
-            string fromState = ExtractNameCandidate(stateJson);
-            if (!string.IsNullOrWhiteSpace(fromState))
-            {
-                return fromState;
-            }
-
-            string directName = await TryEvalStringAsync(
-                "(() => { try {" +
-                "const sels=[" +
-                "\"[data-automation-id*='me' i]\"," +
-                "\"[data-testid*='persona' i]\"," +
-                "\"[aria-label*='account' i]\"," +
-                "\"#mectrl_currentAccount_primary\"," +
-                "\"#mectrl_currentAccount_secondary\"" +
-                "];" +
-                "for(const s of sels){const el=document.querySelector(s);if(!el)continue;const t=(el.innerText||el.textContent||el.getAttribute('aria-label')||'').trim();if(t)return t;}" +
-                "return ''; } catch (e) { return ''; } })();");
-            string fromDirect = CleanNameCandidate(directName);
-            if (!string.IsNullOrWhiteSpace(fromDirect))
-            {
-                return fromDirect;
-            }
-
-            string body = await TryEvalStringAsync(
-                "(() => { try { return document && document.body ? document.body.innerText : ''; } catch (e) { return ''; } })();");
-            return PickBestLineAsName(body);
-        }
-
-        private async Task<string> TryGetEnteredAccountAsync()
-        {
-            string typed = await TryEvalStringAsync(
-                "(() => { try { const el = document.querySelector('input[type=\"email\"],input[name*=\"user\" i],input[name*=\"login\" i],input[id*=\"user\" i],input[id*=\"login\" i]'); return el && el.value ? String(el.value) : ''; } catch (e) { return ''; } })();");
-            string email = ExtractEmail(typed);
-            return IsValidAccount(email) ? email : string.Empty;
-        }
-
         private async Task<byte[]?> TryFetchMyAccountProfileAsync(string account)
         {
             if (!IsValidAccount(account) || _webView.CoreWebView2 == null)
@@ -577,21 +778,19 @@ namespace Office365CleanupTool
             _lastProfileCandidates = string.Empty;
             _lastProfileTraceReason = string.Empty;
 
-            bool navigationCompleted = await TryNavigateAndWaitAsync(MyAccountUrl, 15000);
-            if (!navigationCompleted && !IsVerificationHost(TryGetCurrentUri()))
-            {
-                _isProfileSyncing = false;
-                _lastProfileTraceReason = "navigate-timeout-or-failed";
-                await WriteProfileTraceAsync(account, "myaccount-navigate-failed", 0);
-                return null;
-            }
+            // Credential handoff can happen before the returning portal navigation has completed.
+            // Let that navigation render instead of canceling it with an identical Navigate call.
+            if (!IsVerificationHost(TryGetCurrentUri()) && !IsVerificationHost(_lastNavigationTarget))
+                await TryNavigateAndWaitAsync(MyAccountUrl, 15000);
 
-            if (!navigationCompleted)
+            bool profileReady = await WaitForMyAccountProfileShellAsync();
+            if (!profileReady)
             {
-                _lastProfileTraceReason = "navigate-timeout-continue";
+                // A closed modal window or a canceled return may need one explicit retry.
+                await TryNavigateAndWaitAsync(MyAccountUrl, 15000);
+                profileReady = await WaitForMyAccountProfileShellAsync();
             }
-
-            if (!await WaitForMyAccountProfileShellAsync())
+            if (!profileReady)
             {
                 _isProfileSyncing = false;
                 _lastProfileTraceReason = "profile-shell-timeout";
@@ -669,7 +868,7 @@ namespace Office365CleanupTool
                 "const rect=el=>{const r=el.getBoundingClientRect();return {left:Math.round(r.left),top:Math.round(r.top),width:Math.round(r.width),height:Math.round(r.height)};};" +
                 "const visible=el=>{const r=el.getBoundingClientRect();return r.width>=16&&r.height>=16&&r.left<innerWidth&&r.top<innerHeight&&r.right>0&&r.bottom>0;};" +
                 "const validName=t=>{t=clean(t);return t.length>=2&&t.length<=80&&!email.test(t)&&/[A-Za-z\\u4e00-\\u9fff]{2,}/.test(t)&&!/^(My Account|Security info|Devices|Change password|Organizations|Settings & Privacy|Recent activity|My Apps|Why can't I edit|Sign out everywhere|View account|My Microsoft 365 profile|Third party notice)$/i.test(t);};" +
-                "const describe=(selector,source)=>{const el=document.querySelector(selector);if(!el)return {selector,source,found:false};const r=rect(el);const styles=getComputedStyle(el);const image=String(el.currentSrc||el.src||styles.backgroundImage||'');return {selector,source,found:true,visible:visible(el),tag:el.tagName,id:el.id||'',alt:el.getAttribute('alt')||'',role:el.getAttribute('role')||'',cls:String(el.className||'').slice(0,120),srcLen:image.length,rect:r};};" +
+                "const describe=(selector,source)=>{const el=document.querySelector(selector);if(!el)return {selector,source,found:false};const r=rect(el);const styles=getComputedStyle(el);const image=String(el.currentSrc||el.src||styles.backgroundImage||'');return {selector,source,found:true,visible:visible(el)&&(el.tagName!=='IMG'||(el.complete&&el.naturalWidth>=16)),tag:el.tagName,id:el.id||'',alt:el.getAttribute('alt')||'',role:el.getAttribute('role')||'',cls:String(el.className||'').slice(0,120),srcLen:image.length,rect:r};};" +
                 "const candidates=[" +
                 "describe('#mectrl_currentAccount_picture .mectrl_profilepic','mectrl_currentAccount_picture')," +
                 "describe('#mectrl_currentAccount_picture [role=\"img\"]','mectrl_currentAccount_picture')," +
@@ -769,8 +968,8 @@ namespace Office365CleanupTool
                 await _webView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
                 stream.Position = 0;
                 using var screenshot = new Bitmap(stream);
-                float scaleX = screenshot.Width / (float)_webView.ClientSize.Width;
-                float scaleY = screenshot.Height / (float)_webView.ClientSize.Height;
+                float scaleX = screenshot.Width / (float)_webView.ClientSize.Width * (float)_webView.ZoomFactor;
+                float scaleY = screenshot.Height / (float)_webView.ClientSize.Height * (float)_webView.ZoomFactor;
                 Rectangle crop = Rectangle.Intersect(
                     new Rectangle(
                         (int)Math.Floor(bounds.Value.Left * scaleX),
@@ -847,6 +1046,11 @@ namespace Office365CleanupTool
             DateTime deadline = DateTime.UtcNow.AddSeconds(20);
             while (DateTime.UtcNow < deadline)
             {
+                if (!IsVerificationHost(TryGetCurrentUri()))
+                {
+                    await Task.Delay(300);
+                    continue;
+                }
                 string ready = await TryEvalStringAsync(
                     "(() => { try {" +
                     "const hasProfile=!!document.querySelector('#mectrl_currentAccount_primary,#mectrl_currentAccount_picture,#mectrl_headerPicture,#profilePhoto img,#profilePhoto canvas,#profilePhoto [role=\"img\"]');" +
@@ -871,18 +1075,26 @@ namespace Office365CleanupTool
                 return false;
             }
 
+            CoreWebView2 core = _webView.CoreWebView2;
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            void Handler(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+            ulong? requestedNavigationId = null;
+            void Starting(object? sender, CoreWebView2NavigationStartingEventArgs e)
             {
-                completion.TrySetResult(e.IsSuccess);
+                if (requestedNavigationId == null && string.Equals(e.Uri, url, StringComparison.OrdinalIgnoreCase))
+                    requestedNavigationId = e.NavigationId;
+            }
+            void Completed(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+            {
+                if (requestedNavigationId == e.NavigationId) completion.TrySetResult(e.IsSuccess);
             }
 
-            _webView.CoreWebView2.NavigationCompleted += Handler;
+            core.NavigationStarting += Starting;
+            core.NavigationCompleted += Completed;
             try
             {
                 using var cancellation = new CancellationTokenSource(timeoutMs);
                 using CancellationTokenRegistration registration = cancellation.Token.Register(() => completion.TrySetResult(false));
-                _webView.CoreWebView2.Navigate(url);
+                core.Navigate(url);
                 return await completion.Task;
             }
             catch
@@ -891,10 +1103,12 @@ namespace Office365CleanupTool
             }
             finally
             {
-                if (_webView.CoreWebView2 != null)
+                try
                 {
-                    _webView.CoreWebView2.NavigationCompleted -= Handler;
+                    core.NavigationStarting -= Starting;
+                    core.NavigationCompleted -= Completed;
                 }
+                catch (Exception) when (IsDisposed || Disposing) { }
             }
         }
 
@@ -961,12 +1175,6 @@ namespace Office365CleanupTool
             return Uri.TryCreate(source, UriKind.Absolute, out Uri? uri) ? uri : null;
         }
 
-        private static bool IsLoginHost(Uri? uri)
-        {
-            return uri != null &&
-                   uri.Host.StartsWith("login.", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static bool IsHttpOrHttps(Uri uri)
         {
             return uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
@@ -975,7 +1183,7 @@ namespace Office365CleanupTool
 
         private static bool IsVerificationHost(Uri? uri)
         {
-            if (uri == null)
+            if (uri == null || !uri.IsAbsoluteUri || uri.Scheme != Uri.UriSchemeHttps)
             {
                 return false;
             }
@@ -987,17 +1195,6 @@ namespace Office365CleanupTool
             }
 
             return host.Equals("myaccount.windowsazure.cn", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static string ExtractEmail(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return string.Empty;
-            }
-
-            Match match = EmailRegex.Match(text);
-            return match.Success ? match.Value.Trim() : string.Empty;
         }
 
         private static bool IsValidAccount(string? account)
@@ -1016,107 +1213,6 @@ namespace Office365CleanupTool
             string trimmed = account.Trim();
             int at = trimmed.IndexOf('@');
             return at > 0 ? trimmed[..at] : trimmed;
-        }
-
-        private static string ExtractNameCandidate(string source)
-        {
-            if (string.IsNullOrWhiteSpace(source))
-            {
-                return string.Empty;
-            }
-
-            string[] patterns =
-            {
-                "\"displayName\"\\s*:\\s*\"(?<v>[^\"]{2,80})\"",
-                "\"userName\"\\s*:\\s*\"(?<v>[^\"]{2,80})\"",
-                "\"name\"\\s*:\\s*\"(?<v>[^\"]{2,80})\"",
-                "\"fullName\"\\s*:\\s*\"(?<v>[^\"]{2,80})\""
-            };
-
-            foreach (string pattern in patterns)
-            {
-                Match match = Regex.Match(source, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-                if (!match.Success)
-                {
-                    continue;
-                }
-
-                string candidate = CleanNameCandidate(Regex.Unescape(match.Groups["v"].Value));
-                if (!string.IsNullOrWhiteSpace(candidate))
-                {
-                    return candidate;
-                }
-            }
-
-            return string.Empty;
-        }
-
-        private static string PickBestLineAsName(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return string.Empty;
-            }
-
-            string[] blocked =
-            {
-                "home", "search", "create", "apps", "recent", "shared", "folder",
-                "settings", "help", "microsoft"
-            };
-
-            string best = string.Empty;
-            int bestScore = int.MinValue;
-            string[] lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (string raw in lines)
-            {
-                string candidate = CleanNameCandidate(raw);
-                if (string.IsNullOrWhiteSpace(candidate))
-                {
-                    continue;
-                }
-
-                if (ExtractEmail(candidate).Length > 0)
-                {
-                    return ExtractEmail(candidate);
-                }
-
-                int score = 0;
-                if (candidate.Length is >= 2 and <= 30)
-                {
-                    score += 3;
-                }
-                else if (candidate.Length <= 45)
-                {
-                    score += 1;
-                }
-                else
-                {
-                    score -= 3;
-                }
-
-                if (candidate.Any(char.IsLetter))
-                {
-                    score += 2;
-                }
-
-                if (Regex.IsMatch(candidate, @"[\u4e00-\u9fff]", RegexOptions.CultureInvariant))
-                {
-                    score += 2;
-                }
-
-                if (blocked.Any(x => candidate.Contains(x, StringComparison.OrdinalIgnoreCase)))
-                {
-                    score -= 6;
-                }
-
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    best = candidate;
-                }
-            }
-
-            return bestScore >= 2 ? best : string.Empty;
         }
 
         private static string CleanNameCandidate(string value)
@@ -1172,16 +1268,8 @@ namespace Office365CleanupTool
                 return;
             }
 
+            await TryRevealSignInSurfaceAsync();
             Uri? uri = TryGetCurrentUri();
-            if (IsLoginHost(uri))
-            {
-                string typedAccount = await TryGetEnteredAccountAsync();
-                if (!string.IsNullOrWhiteSpace(typedAccount))
-                {
-                    _candidateAccount = typedAccount.Trim();
-                }
-            }
-
             await TryMarkVerifiedAsync(uri);
         }
 
@@ -1189,23 +1277,37 @@ namespace Office365CleanupTool
         {
             _verificationTimer.Stop();
             _navigationWatchdogTimer.Stop();
+            RecordLoadTiming("dialog-closed");
+            FlushLoadTimings();
 
-            try
-            {
-                if (_webView.CoreWebView2 != null)
-                {
-                    _webView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
-                }
-            }
-            catch
-            {
-                // Ignore unhook failures.
-            }
-
+            // ShowDialog may close before the same WebView is reused for background
+            // profile sync. Release its session only when the form is disposed.
             base.OnFormClosed(e);
-            TryDeleteUserDataFolder();
-            _verificationTimer.Dispose();
-            _navigationWatchdogTimer.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            bool releaseSession = disposing && !_resourcesDisposed;
+            if (releaseSession)
+            {
+                _resourcesDisposed = true;
+                _verificationTimer?.Stop();
+                _navigationWatchdogTimer?.Stop();
+                _verificationTimer?.Dispose();
+                _navigationWatchdogTimer?.Dispose();
+                try
+                {
+                    if (_webView?.CoreWebView2 != null)
+                    {
+                        _webView.CoreWebView2.DOMContentLoaded -= WebView_DOMContentLoaded;
+                        _webView.CoreWebView2.NavigationCompleted -= WebView_NavigationCompleted;
+                        _webView.CoreWebView2.WebMessageReceived -= SignInAccount_WebMessageReceived;
+                    }
+                }
+                catch { /* The browser may already be shutting down. */ }
+            }
+            base.Dispose(disposing);
+            if (releaseSession) TryDeleteUserDataFolder();
         }
 
         private void TryDeleteUserDataFolder()

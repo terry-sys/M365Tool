@@ -1,0 +1,56 @@
+[
+  {
+    "key": "install",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Arrow%20Download/SVG/ic_fluent_arrow_download_24_regular.svg",
+    "bytes": 893
+  },
+  {
+    "key": "uninstall",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Box%20Dismiss/SVG/ic_fluent_box_dismiss_24_regular.svg",
+    "bytes": 1626
+  },
+  {
+    "key": "channel",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Arrow%20Sync/SVG/ic_fluent_arrow_sync_24_regular.svg",
+    "bytes": 1333
+  },
+  {
+    "key": "repair",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Wrench/SVG/ic_fluent_wrench_24_regular.svg",
+    "bytes": 1385
+  },
+  {
+    "key": "teams",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/People%20Team/SVG/ic_fluent_people_team_24_regular.svg",
+    "bytes": 1984
+  },
+  {
+    "key": "outlook",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Mail/SVG/ic_fluent_mail_24_regular.svg",
+    "bytes": 756
+  },
+  {
+    "key": "home",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Home/SVG/ic_fluent_home_24_regular.svg",
+    "bytes": 1118
+  },
+  {
+    "key": "menu",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Navigation/SVG/ic_fluent_navigation_24_regular.svg",
+    "bytes": 947
+  },
+  {
+    "key": "about",
+    "style": "regular",
+    "url": "https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Info/SVG/ic_fluent_info_24_regular.svg",
+    "bytes": 790
+  }
+]

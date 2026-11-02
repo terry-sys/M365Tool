@@ -9,8 +9,9 @@
     <AssemblyName>M365Tool</AssemblyName>
     <RootNamespace>M365Tool</RootNamespace>
     <Product>21Vianet Office工具箱</Product>
+    <Version>0.1.6</Version>
     <AssemblyTitle>21Vianet Office工具箱</AssemblyTitle>
-    <ApplicationIcon>Assets\Icons\App\21vianet_office工具箱_multisize.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\Icons\App\toolbox-sparkle.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <NoWarn>$(NoWarn);8600</NoWarn>
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
@@ -21,14 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\Icons\App\toolbox-sparkle.ico" LogicalName="M365Tool.Assets.AppIcon.ico" />
     <EmbeddedResource Include="Assets\privacy.html" LogicalName="M365Tool.Assets.privacy.html" />
     <EmbeddedResource Include="Assets\support-wechat-qr.png" LogicalName="M365Tool.Assets.support-wechat-qr.png" />
-    <EmbeddedResource Include="Assets\Icons\Home\install_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.install_exact_preview_tile_128.png" />
-    <EmbeddedResource Include="Assets\Icons\Home\uninstall_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.uninstall_exact_preview_tile_128.png" />
-    <EmbeddedResource Include="Assets\Icons\Home\update_channel_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.update_channel_exact_preview_tile_128.png" />
-    <EmbeddedResource Include="Assets\Icons\Home\cleanup_repair_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.cleanup_repair_exact_preview_tile_128.png" />
-    <EmbeddedResource Include="Assets\Icons\Home\teams_tools_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.teams_tools_exact_preview_tile_128.png" />
-    <EmbeddedResource Include="Assets\Icons\Home\outlook_tools_exact_preview_tile_128.png" LogicalName="M365Tool.Assets.Icons.Home.outlook_tools_exact_preview_tile_128.png" />
+    <EmbeddedResource Include="Assets\Icons\FluentOutline\*.png" LogicalName="M365Tool.Assets.Icons.FluentOutline.%(Filename)%(Extension)" />
+    <None Update="Assets\Icons\FluentOutline\LICENSE-Fluent.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="StripWebView2WpfReference" BeforeTargets="ResolveReferences">

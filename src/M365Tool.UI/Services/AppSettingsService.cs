@@ -8,9 +8,18 @@ namespace Office365CleanupTool.Services
 {
     public sealed class AppSettings
     {
+        public const int CurrentVerificationVersion = 1;
+
         public string LanguageMode { get; set; } = "Auto";
 
         public bool HasValidated21VAccount { get; set; }
+
+        public int VerificationVersion { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool HasCurrentVerification => HasValidated21VAccount
+            && VerificationVersion == CurrentVerificationVersion
+            && !string.IsNullOrWhiteSpace(LastValidatedAccount);
 
         public string LastValidatedAccount { get; set; } = string.Empty;
 

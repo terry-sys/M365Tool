@@ -1,5 +1,7 @@
 namespace Office365CleanupTool.Models
 {
+    public enum OfficeUninstallMode { Standard, DeepCleanup }
+
     public class OfficeUninstallTargetOption
     {
         public string DisplayName { get; set; } = string.Empty;
@@ -16,6 +18,10 @@ namespace Office365CleanupTool.Models
     public class OfficeUninstallRequest
     {
         public OfficeUninstallTargetOption Target { get; set; } = new OfficeUninstallTargetOption();
+
+        public OfficeUninstallMode Mode { get; set; } = OfficeUninstallMode.Standard;
+
+        public bool ForceCloseApplications { get; set; }
     }
 
     public class OfficeUninstallResult
@@ -44,6 +50,6 @@ namespace Office365CleanupTool.Models
 
         public bool RequiresAttention { get; set; }
 
-        public bool IsSuccess => ExitCode == 0 && !RequiresAttention;
+        public bool IsSuccess => (ExitCode == 0 || ExitCode == 3010) && !RequiresAttention;
     }
 }

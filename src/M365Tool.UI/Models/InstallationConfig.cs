@@ -54,7 +54,7 @@ namespace Office365CleanupTool.Models
 
         public bool PinItemsToTaskbar { get; set; } = true;
 
-        public bool KeepMSI { get; set; }
+        public bool KeepMSI { get; set; } = true;
 
         public bool SharedComputerLicensing { get; set; }
 

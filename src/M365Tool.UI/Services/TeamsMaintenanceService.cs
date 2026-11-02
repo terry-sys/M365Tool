@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,14 +30,13 @@ namespace Office365CleanupTool.Services
         {
             return Task.Run(() =>
             {
+                using var operation = MaintenanceCoordinator.Shared.Begin(language);
                 var result = new TeamsMaintenanceResult();
 
                 StopTeamsProcesses(result.StoppedProcesses, result.Warnings, language);
                 ResetTeams(result, language);
-                ClearTeamsCache(result, language);
-
-                result.Success = string.IsNullOrWhiteSpace(result.ResetError) && result.CacheTargets.Count > 0;
-                result.Message = BuildMaintenanceSummary(result, language);
+                ClearTeamsCache(GetPrimaryCacheTarget(language), result, language);
+                CompleteMaintenanceResult(result, language);
                 return result;
             });
         }
@@ -47,31 +45,46 @@ namespace Office365CleanupTool.Services
         {
             return Task.Run(() =>
             {
+                using var operation = MaintenanceCoordinator.Shared.Begin(language);
                 var result = new TeamsSignInRecordCleanupResult();
 
                 StopTeamsProcesses(result.StoppedProcesses, result.Warnings, language);
 
-                IReadOnlyList<TeamsPathTarget> allTargets = GetSignInRecordTargets(language);
-                foreach (TeamsPathTarget target in allTargets)
-                {
-                    if (!Directory.Exists(target.Path))
-                    {
-                        result.Warnings.Add(T(language, $"未找到目录：{target.Path}", $"Directory not found: {target.Path}"));
-                        continue;
-                    }
-
-                    result.ProcessedTargets.Add(target);
-                    ClearDirectoryContents(target.Path, result);
-                }
-
-                result.Success = result.ProcessedTargets.Count == allTargets.Count;
-                result.Message = BuildSignInRecordSummary(result, language);
+                ClearSignInRecordTargets(GetSignInRecordTargets(language), result, language);
                 return result;
             });
         }
 
-        public async Task<TeamsAddinRepairResult> RepairOutlookAddinAsync(UiLanguage language = UiLanguage.Chinese)
+        internal static void CompleteMaintenanceResult(TeamsMaintenanceResult result, UiLanguage language)
         {
+            result.Success = string.IsNullOrWhiteSpace(result.ResetError) && result.CacheCleared
+                && (result.ResetSucceeded || result.CacheTargets.Count > 0);
+            result.Message = BuildMaintenanceSummary(result, language);
+        }
+
+        internal static void ClearSignInRecordTargets(IReadOnlyList<TeamsPathTarget> targets,
+            TeamsSignInRecordCleanupResult result, UiLanguage language)
+        {
+            foreach (TeamsPathTarget target in targets)
+            {
+                if (!Directory.Exists(target.Path))
+                {
+                    result.Warnings.Add(T(language, $"目录不存在，无需清理：{target.Path}", $"Directory is absent; no cleanup needed: {target.Path}"));
+                    continue;
+                }
+
+                ClearDirectoryContents(target.Path, result);
+                result.ProcessedTargets.Add(target);
+            }
+
+            // Missing optional caches are already clear; deletion errors still propagate.
+            result.Success = true;
+            result.Message = BuildSignInRecordSummary(result, language);
+        }
+
+        public async Task<TeamsAddinRepairResult> RepairOutlookAddinAsync(UiLanguage language = UiLanguage.Chinese, CancellationToken cancellationToken = default)
+        {
+            using var operation = MaintenanceCoordinator.Shared.Begin(language);
             var result = new TeamsAddinRepairResult();
 
             ToolSessionPaths session = ToolPathService.CreateSession("TeamsAddinRepair");
@@ -79,43 +92,32 @@ namespace Office365CleanupTool.Services
             string extractRoot = Path.Combine(session.ExtractedDirectory, "SaRA");
             string logRoot = session.LogsDirectory;
 
-            using (var client = new HttpClient())
-            using (var response = await client.GetAsync(SaraDownloadUrl, HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
-                await using var fileStream = new FileStream(saraZipPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await response.Content.CopyToAsync(fileStream);
-            }
+            await ToolDownloadService.DownloadAsync(SaraDownloadUrl, saraZipPath, cancellationToken);
 
             ZipFile.ExtractToDirectory(saraZipPath, extractRoot, true);
 
             string executablePath = FindSaraExecutable(extractRoot, language);
-            var startInfo = new ProcessStartInfo
+            var runner = new ScriptRunner();
+            await MicrosoftToolVerifier.VerifyAsync(executablePath, runner, cancellationToken);
+            var execution = await runner.RunAsync(new ScriptExecutionRequest
             {
                 FileName = executablePath,
-                Arguments = $"-S TeamsAddinScenario -AcceptEula -LogFolder \"{logRoot}\"",
+                Arguments = BuildAddinRepairArguments(logRoot),
                 WorkingDirectory = Path.GetDirectoryName(executablePath),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using Process process = Process.Start(startInfo)
-                ?? throw new InvalidOperationException(T(language, "无法启动 Teams Meeting Add-in 修复命令。", "Failed to start Teams Meeting Add-in repair command."));
-
-            string output = process.StandardOutput.ReadToEnd().Trim();
-            string error = process.StandardError.ReadToEnd().Trim();
-            process.WaitForExit();
-
-            result.ExitCode = process.ExitCode;
+                CancellationToken = cancellationToken,
+                Timeout = TimeSpan.FromMinutes(15)
+            });
+            string output = execution.StandardOutput.Trim();
+            string error = execution.StandardError.Trim();
+            result.ExitCode = execution.ExitCode;
             result.StandardOutput = output;
             result.StandardError = error;
             result.LogDirectory = logRoot;
             result.HasArgumentError = ContainsInvalidArguments(output, error);
             result.HasDiagnosticFailure = ContainsDiagnosticFailure(output);
             result.TeamsNotInstalledByDiagnostic = ContainsTeamsNotInstalled(output);
-            result.Success = (process.ExitCode == 0 || process.ExitCode == 23 || process.ExitCode == 24)
+            result.Success = !execution.IsStillRunning && !execution.TimedOut && !execution.WasCanceled
+                && (execution.ExitCode == 0 || execution.ExitCode == 23 || execution.ExitCode == 24)
                 && !result.HasArgumentError
                 && !result.HasDiagnosticFailure;
 
@@ -124,6 +126,11 @@ namespace Office365CleanupTool.Services
 
             result.Message = BuildAddinRepairSummary(result, language);
             return result;
+        }
+
+        internal static string BuildAddinRepairArguments(string logRoot)
+        {
+            return $"-S TeamsAddinScenario -AcceptEula -CloseOutlook -LogFolder \"{logRoot}\"";
         }
 
         public TeamsPathTarget GetPrimaryCacheTarget(UiLanguage language = UiLanguage.Chinese)
@@ -245,6 +252,7 @@ catch {
 
             if (statusLine.StartsWith("STATUS:RESET_OK|", StringComparison.OrdinalIgnoreCase))
             {
+                result.ResetSucceeded = true;
                 string[] parts = statusLine.Split('|');
                 result.PackageId = parts.Length > 1 ? parts[1].Trim() : string.Empty;
                 result.PackageFullName = parts.Length > 2 ? parts[2].Trim() : string.Empty;
@@ -290,17 +298,18 @@ catch {
                 extractRoot);
         }
 
-        private void ClearTeamsCache(TeamsMaintenanceResult result, UiLanguage language)
+        internal static void ClearTeamsCache(TeamsPathTarget target, TeamsMaintenanceResult result, UiLanguage language)
         {
-            TeamsPathTarget target = GetPrimaryCacheTarget(language);
             if (!Directory.Exists(target.Path))
             {
-                result.Warnings.Add(T(language, "未找到新版 Teams 缓存目录。", "New Teams cache directory was not found."));
+                result.CacheCleared = true;
+                result.Warnings.Add(T(language, "Teams 缓存目录不存在，无需清理。", "Teams cache directory is absent; no cleanup needed."));
                 return;
             }
 
             result.CacheTargets.Add(target);
             ClearDirectoryContents(target.Path, result);
+            result.CacheCleared = true;
         }
 
         private static void ClearDirectoryContents(string rootPath, TeamsMaintenanceResult result)
@@ -341,9 +350,13 @@ catch {
                 ? T(language, "未返回应用包标识", "Package identifier not returned")
                 : GetFriendlyPackageName(result.PackageId, language);
 
-            string headline = string.IsNullOrWhiteSpace(result.ResetError)
-                ? T(language, "Teams 重置与缓存清理已执行完成。", "Teams reset and cache cleanup completed.")
-                : T(language, "Teams 缓存已清理，但应用重置未完全成功。", "Teams cache was cleaned, but app reset did not fully succeed.");
+            string headline = result.Success
+                ? result.ResetSucceeded
+                    ? T(language, "Teams 重置与缓存清理已执行完成。", "Teams reset and cache cleanup completed.")
+                    : T(language, "Teams 缓存已清理；应用重置步骤已跳过。", "Teams cache cleanup completed; app reset was skipped.")
+                : !string.IsNullOrWhiteSpace(result.ResetError) && result.CacheCleared
+                    ? T(language, "Teams 缓存已清理，但应用重置未完全成功。", "Teams cache was cleaned, but app reset did not fully succeed.")
+                    : T(language, "Teams 处理未完成，请查看提示。", "Teams processing did not complete. See notices.");
 
             var lines = new List<string>
             {
@@ -389,12 +402,16 @@ catch {
             return string.Join(Environment.NewLine, lines);
         }
 
-        private string BuildSignInRecordSummary(TeamsSignInRecordCleanupResult result, UiLanguage language)
+        private static string BuildSignInRecordSummary(TeamsSignInRecordCleanupResult result, UiLanguage language)
         {
             var lines = new List<string>
             {
                 T(language, "执行结果", "Result"),
-                result.Success ? T(language, "Teams 登录记录清理已完成。", "Teams sign-in record cleanup completed.") : T(language, "Teams 登录记录清理未完全完成，请查看提示。", "Teams sign-in record cleanup did not fully complete. See notices."),
+                result.Success
+                    ? result.ProcessedTargets.Count > 0
+                        ? T(language, "Teams 登录记录清理已完成。", "Teams sign-in record cleanup completed.")
+                        : T(language, "未发现本地登录记录，无需清理。", "No local sign-in records were found; no cleanup needed.")
+                    : T(language, "Teams 登录记录清理未完全完成，请查看提示。", "Teams sign-in record cleanup did not fully complete. See notices."),
                 string.Empty,
                 T(language, "已关闭进程", "Closed Processes"),
                 BuildProcessSummary(result.StoppedProcesses, language),
@@ -402,7 +419,7 @@ catch {
                 T(language, "已处理位置", "Processed Paths"),
                 result.ProcessedTargets.Count > 0
                     ? string.Join(Environment.NewLine, result.ProcessedTargets.Select(target => $"- {target.DisplayName}: {target.Path}"))
-                    : $"- {T(language, "未成功处理任何目录", "No directories were processed")}",
+                    : $"- {T(language, "目录均不存在，无需清理", "No directories needed cleanup")}",
                 string.Empty,
                 T(language, "清理统计", "Cleanup Stats"),
                 $"- {T(language, "已删除目录", "Deleted directories")}: {result.DeletedDirectories}",
@@ -614,6 +631,10 @@ catch {
     public class TeamsMaintenanceResult
     {
         public bool Success { get; set; }
+
+        public bool ResetSucceeded { get; set; }
+
+        public bool CacheCleared { get; set; }
 
         public string PackageId { get; set; } = string.Empty;
 

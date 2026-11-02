@@ -8,7 +8,7 @@ namespace Office365CleanupTool.Services
     {
         public static XDocument Build(InstallationConfig config, IReadOnlyList<string> excludeApps)
         {
-            string channel = config.Channel == UpdateChannel.Monthly ? "Current" : "SemiAnnual";
+            string channel = OfficeChannelService.GetChannelName(config.Channel);
             string officeEdition = config.Edition == OfficeEdition.Business ? "O365BusinessRetail" : "O365ProPlusRetail";
             string officeArch = config.Architecture == OfficeArchitecture.x64 ? "64" : "32";
             string displayLevel = config.SilentInstall ? "None" : "Full";
@@ -222,9 +222,13 @@ namespace Office365CleanupTool.Services
 
         private static UpdateChannel GetChannel(string? channel)
         {
-            return string.Equals(channel, "SemiAnnual", System.StringComparison.OrdinalIgnoreCase)
-                ? UpdateChannel.Broad
-                : UpdateChannel.Monthly;
+            return channel?.Trim().ToLowerInvariant() switch
+            {
+                null or "" or "current" or "monthly" => UpdateChannel.Monthly,
+                "semiannual" or "broad" => UpdateChannel.Broad,
+                "monthlyenterprise" => UpdateChannel.MonthlyEnterprise,
+                _ => throw new InvalidOperationException($"不支持的更新频道 / Unsupported update channel: {channel}")
+            };
         }
 
         private static bool ParseBool(string? value, bool defaultValue = false)

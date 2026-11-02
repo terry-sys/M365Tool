@@ -29,6 +29,7 @@ namespace Office365CleanupTool
         private readonly TextBox _txtResult;
         private readonly Button _btnCleanup;
         private readonly Button _btnRepairNetwork;
+        private readonly Button _btnRestoreNetwork;
         private bool _isRunning;
         private UiLanguage _language;
 
@@ -80,7 +81,9 @@ namespace Office365CleanupTool
             _txtResult.BorderStyle = BorderStyle.None;
             _txtResult.BackColor = Color.White;
             _resultHost.Controls.Add(_txtResult);
-            _resultCard.Controls.AddRange(new Control[] { _lblResultTitle, _lblResultStatus, _resultHost });
+            _btnRestoreNetwork = WorkbenchUi.CreateSecondaryButton(string.Empty, Point.Empty, new Size(160, 38));
+            _btnRestoreNetwork.Click += async (_, _) => await RestoreNetworkAsync();
+            _resultCard.Controls.AddRange(new Control[] { _lblResultTitle, _lblResultStatus, _resultHost, _btnRestoreNetwork });
 
             _contentPanel.Controls.AddRange(new Control[] { _lblTitle, _lblDescription, _cardsHost, _resultCard });
             _scrollHost.Controls.Add(_contentPanel);
@@ -123,11 +126,12 @@ namespace Office365CleanupTool
                 "修改 IE / WinHTTP 相关设置与代理配置，帮助恢复 Office 激活所需网络环境。",
                 "Repair IE/WinHTTP settings and proxy to restore network prerequisites for Office activation.");
             _btnRepairNetwork.Text = T("开始处理", "Start");
+            _btnRestoreNetwork.Text = T("恢复网络备份", "Restore Network Backup");
 
             _lblResultTitle.Text = T("处理结果", "Results");
             if (string.IsNullOrWhiteSpace(_txtResult.Text) ||
-                _txtResult.Text.Contains("查看清理", StringComparison.OrdinalIgnoreCase) ||
-                _txtResult.Text.Contains("View cleanup", StringComparison.OrdinalIgnoreCase))
+                _txtResult.Text == "可以在这里查看清理或修复的执行进度与结果。" ||
+                _txtResult.Text == "View cleanup/repair progress and results here.")
             {
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Info);
                 _lblResultStatus.Text = T("等待执行", "Ready");
@@ -135,6 +139,7 @@ namespace Office365CleanupTool
                     "可以在这里查看清理或修复的执行进度与结果。",
                     "View cleanup/repair progress and results here.");
             }
+            LayoutControls();
         }
 
         public void PrepareForDisplay()
@@ -199,7 +204,8 @@ namespace Office365CleanupTool
             _lblResultStatus.Location = new Point(availableWidth - S(168), S(16));
             _lblResultStatus.Size = new Size(S(148), S(28));
             _resultHost.Location = new Point(S(20), S(50));
-            _resultHost.Size = new Size(availableWidth - S(40), _resultCard.Height - S(70));
+            _resultHost.Size = new Size(availableWidth - S(40), _resultCard.Height - S(120));
+            _btnRestoreNetwork.Bounds = new Rectangle(S(20), _resultCard.Height - S(56), S(200), S(38));
             _txtResult.Location = new Point(S(12), S(12));
             _txtResult.Size = new Size(_resultHost.Width - S(24), _resultHost.Height - S(24));
 
@@ -239,29 +245,46 @@ namespace Office365CleanupTool
         private async void btnRepairNetwork_Click(object? sender, EventArgs e)
         {
             if (_isRunning) return;
-            DialogResult confirm = MessageBox.Show(
-                T(
-                    "确定要修复网络与激活环境吗？这会修改代理和 Internet Settings 相关配置。",
-                    "Are you sure to repair network/activation environment? This modifies proxy and Internet Settings."),
-                T("确认修复网络与激活环境", "Confirm Repair Network/Activation"),
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-            if (confirm != DialogResult.Yes) return;
+            using var options = new NetworkRepairOptionsForm(_networkRepairService, _language);
+            if (options.ShowDialog(this) != DialogResult.OK) return;
 
             await RunBusyAsync(async () =>
             {
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Info);
                 _lblResultStatus.Text = T("正在处理", "Processing");
                 _txtResult.Text = T("正在修复网络与激活环境...", "Repairing network and activation environment...");
-                await _networkRepairService.RunAsync(_language);
+                await _networkRepairService.RunAsync(_language, options.Options);
                 WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Success);
                 _lblResultStatus.Text = T("处理完成", "Completed");
                 _txtResult.Text += Environment.NewLine + T("网络问题修复完成。", "Network repair completed.");
+                _txtResult.Text += Environment.NewLine + T("配置备份：", "Settings backup: ") + _networkRepairService.LastBackupPath;
                 MessageBox.Show(
                     T("网络问题修复完成。", "Network repair completed."),
                     T("完成", "Done"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
+            });
+        }
+
+        private async Task RestoreNetworkAsync()
+        {
+            if (_isRunning) return;
+            using var picker = new OpenFileDialog
+            {
+                Filter = "Network backup (*.json)|*.json",
+                InitialDirectory = ToolPathService.GetModuleRootDirectory("NetworkRepair"),
+                FileName = _networkRepairService.LastBackupPath
+            };
+            if (picker.ShowDialog(this) != DialogResult.OK) return;
+            if (MessageBox.Show(T($"恢复此备份中的 Internet Settings 与 WinHTTP 代理？\n{picker.FileName}",
+                $"Restore Internet Settings and WinHTTP proxy from this backup?\n{picker.FileName}"),
+                T("恢复网络备份", "Restore Network Backup"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            await RunBusyAsync(async () =>
+            {
+                await _networkRepairService.RestoreAsync(picker.FileName);
+                WorkbenchUi.ApplyStatusStyle(_lblResultStatus, WorkbenchTone.Success);
+                _lblResultStatus.Text = T("恢复完成", "Restored");
+                _txtResult.Text = T("网络配置已恢复。", "Network settings restored.");
             });
         }
 
@@ -272,6 +295,7 @@ namespace Office365CleanupTool
                 _isRunning = true;
                 _btnCleanup.Enabled = false;
                 _btnRepairNetwork.Enabled = false;
+                _btnRestoreNetwork.Enabled = false;
                 UseWaitCursor = true;
                 await action();
             }
@@ -291,6 +315,7 @@ namespace Office365CleanupTool
                 _isRunning = false;
                 _btnCleanup.Enabled = true;
                 _btnRepairNetwork.Enabled = true;
+                _btnRestoreNetwork.Enabled = true;
                 UseWaitCursor = false;
             }
         }

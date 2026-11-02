@@ -262,11 +262,11 @@ namespace Office365CleanupTool
                 $"当前实际界面语言：{GetLanguageDisplay(LocalizationService.ResolveLanguage(_settings.LanguageMode))}",
                 $"Current UI language: {GetLanguageDisplay(LocalizationService.ResolveLanguage(_settings.LanguageMode))}");
             _lblValidationState.Text = T(
-                _settings.HasValidated21VAccount ? "21V 门户验证：已通过" : "21V 门户验证：未通过",
-                _settings.HasValidated21VAccount ? "21V verification: Passed" : "21V verification: Not passed");
+                _settings.HasCurrentVerification ? "21V 门户验证：已通过" : "21V 门户验证：未通过",
+                _settings.HasCurrentVerification ? "21V verification: Passed" : "21V verification: Not passed");
             WorkbenchUi.ApplyStatusStyle(
                 _lblValidationState,
-                _settings.HasValidated21VAccount ? WorkbenchTone.Success : WorkbenchTone.Warning);
+                _settings.HasCurrentVerification ? WorkbenchTone.Success : WorkbenchTone.Warning);
             _lblSupportTitle.Text = T("反馈与支持", "Feedback & Support");
             _lblSupportTag.Text = T("公众号支持", "Service Entry");
             _lblSupportSummary.Text = T(
@@ -289,6 +289,7 @@ namespace Office365CleanupTool
                 "我们可能处理的信息：\r\n• 21V 账户登录验证状态、显示名、账号标识和头像缓存，用于显示登录状态和限制未登录功能。\r\n• 工具配置、安装/卸载/修复/诊断执行日志和返回码，用于本机排障、结果查看和支持工单。\r\n• 二维码反馈或技术支持中由你主动提交的信息。\r\n\r\n数据使用原则：\r\n• 本工具不出售个人信息，不进行画像或自动化决策。\r\n• 头像、设置和日志优先保存在本机用户目录；除你主动提交反馈或工单外，工具不会主动上传日志内容。\r\n• 你可以通过注销、清理缓存或删除本机日志目录来移除本地保存的账号状态和执行记录。",
                 "Information this tool may process:\r\n• 21V account verification state, display name, account identifier, and avatar cache for sign-in status and feature gating.\r\n• Tool settings, install/uninstall/repair/diagnostic logs, and exit codes for local troubleshooting, result review, and support tickets.\r\n• Information you voluntarily submit through QR-code feedback or technical support.\r\n\r\nData use principles:\r\n• This tool does not sell personal information, build profiles, or make automated decisions.\r\n• Avatars, settings, and logs are stored locally in the user profile by default. The tool does not actively upload logs unless you submit feedback or a support ticket.\r\n• You can sign out, clear cache, or delete the local log folder to remove locally stored account state and execution records.");
             BindLanguageModeOptions();
+            LayoutControls();
         }
 
         private void LayoutControls()
@@ -376,6 +377,7 @@ namespace Office365CleanupTool
                 _lblSupportHint.Size = new Size(textWidth, S(40));
                 _qrPanel.Location = new Point(availableWidth - qrPanelWidth - S(20), S(28));
                 _qrPanel.Size = new Size(qrPanelWidth, S(248));
+                _lblSupportTitle.Width = _qrPanel.Left - S(12) - _lblSupportTitle.Left;
                 _picSupportQr.Location = new Point((_qrPanel.Width - qrSize) / 2, S(18));
                 _picSupportQr.Size = new Size(qrSize, qrSize);
                 _btnOpenQr.Size = WorkbenchUi.ScaleSize(new Size(132, 38), scale);
@@ -393,7 +395,12 @@ namespace Office365CleanupTool
             _btnOpenPrivacyPolicy.Location = new Point(S(20), S(106));
             int privacyContentTop = _btnOpenPrivacyPolicy.Bottom + S(22);
             _lblPrivacyContent.Location = new Point(S(20), privacyContentTop);
-            _lblPrivacyContent.Size = new Size(availableWidth - S(40), privacyHeight - privacyContentTop - S(24));
+            int privacyContentWidth = availableWidth - S(40);
+            int privacyContentHeight = TextRenderer.MeasureText(
+                _lblPrivacyContent.Text, _lblPrivacyContent.Font,
+                new Size(privacyContentWidth, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height;
+            _lblPrivacyContent.Size = new Size(privacyContentWidth, privacyContentHeight);
+            _privacyCard.Height = Math.Max(privacyHeight, _lblPrivacyContent.Bottom + S(24));
 
             _contentPanel.Width = Math.Max(10, viewportWidth - 1);
             _contentPanel.Height = _privacyCard.Bottom + S(24);
