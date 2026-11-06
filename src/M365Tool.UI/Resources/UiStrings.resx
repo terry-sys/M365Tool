@@ -73,7 +73,7 @@ Please restart your PC before opening New Teams again.</value>
 </value>
   </data>
   <data name="TXT_1F08F9DC" xml:space="preserve">
-    <value>This will clear 21V portal verification status. Continue?</value>
+    <value>This will clear account verification status. Continue?</value>
   </data>
   <data name="TXT_26715142" xml:space="preserve">
     <value>[Pass]</value>
@@ -375,7 +375,7 @@ Continue?</value>
     <value>Language</value>
   </data>
   <data name="TXT_9A7E63A2" xml:space="preserve">
-    <value>Configure language and 21V portal verification status.</value>
+    <value>Configure language and account verification status.</value>
   </data>
   <data name="TXT_9C42C288" xml:space="preserve">
     <value>Next step suggestion:</value>
@@ -393,7 +393,7 @@ Continue?</value>
     <value>Detected Office</value>
   </data>
   <data name="TXT_A01CBA93" xml:space="preserve">
-    <value>Status: 21V portal verification not completed.</value>
+    <value>Status: account verification not completed.</value>
   </data>
   <data name="TXT_A02CECEB" xml:space="preserve">
     <value>Are you sure to repair network/activation environment? This modifies proxy and Internet Settings.</value>
@@ -417,7 +417,7 @@ Continue?</value>
     <value>Repair IE/WinHTTP settings and proxy to restore network prerequisites for Office activation.</value>
   </data>
   <data name="TXT_B11CBAB7" xml:space="preserve">
-    <value>Please complete 21V portal verification before using other pages.</value>
+    <value>Please complete account verification before using other pages.</value>
   </data>
   <data name="TXT_B390E397" xml:space="preserve">
     <value>Checking system environment...</value>
@@ -498,7 +498,7 @@ Continue?</value>
     <value>Edition</value>
   </data>
   <data name="TXT_DE903B3C" xml:space="preserve">
-    <value>21V portal verification is required to use this tool.</value>
+    <value>Account verification is required to use this tool.</value>
   </data>
   <data name="TXT_DF1456D1" xml:space="preserve">
     <value>No signed-in user detected</value>

@@ -100,7 +100,7 @@ namespace Office365CleanupTool
             _statusLabel = new Label
             {
                 Dock = DockStyle.Fill,
-                Text = T("正在初始化 21V 登录页面...", "Initializing 21V sign-in page..."),
+                Text = T("正在初始化登录页面...", "Initializing sign-in page..."),
                 TextAlign = ContentAlignment.MiddleCenter,
                 Font = WorkbenchUi.CreateUiFont(11F),
                 ForeColor = Color.FromArgb(86, 105, 130),
@@ -201,12 +201,12 @@ namespace Office365CleanupTool
 
             try
             {
-                SetStatus(T("正在初始化 21V 登录页面...", "Initializing 21V sign-in page..."));
+                SetStatus(T("正在初始化登录页面...", "Initializing sign-in page..."));
                 StartNavigationWatchdog(SignInPageLoadTimeoutMs);
                 await PrepareAsync();
                 if (IsDisposed || Disposing) return;
 
-                SetStatus(T("正在打开 21V 登录页面...", "Opening 21V sign-in page..."));
+                SetStatus(T("正在打开登录页面...", "Opening sign-in page..."));
                 RecordLoadTiming("navigation-requested");
                 _webView.CoreWebView2.Navigate(MyAccountUrl);
                 StartNavigationWatchdog(SignInPageLoadTimeoutMs);
@@ -229,7 +229,7 @@ namespace Office365CleanupTool
             {
                 if (IsDisposed || Disposing) return;
                 MessageBox.Show(
-                    T("无法打开 21V 登录页面：" + ex.Message, "Unable to open 21V sign-in page: " + ex.Message),
+                    T("无法打开登录页面：" + ex.Message, "Unable to open sign-in page: " + ex.Message),
                     T("打开失败", "Open Failed"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -269,7 +269,7 @@ namespace Office365CleanupTool
                 StartNavigationWatchdog(SignInPageLoadTimeoutMs);
                 SetStatus(IsVerificationHost(target) && _hasReturnedFromChinaSignIn
                     ? T("正在确认登录结果...", "Confirming sign-in...")
-                    : T("正在连接 21V 验证服务...", "Connecting to 21V sign-in..."));
+                    : T("正在连接登录验证服务...", "Connecting to the sign-in service..."));
                 if (_hasReturnedFromChinaSignIn && IsVerificationHost(target))
                     this.BeginInvokeWhenReady(() => _ = TryMarkVerifiedAsync(target));
             };
@@ -308,7 +308,7 @@ namespace Office365CleanupTool
                     }
                     else
                     {
-                        SetStatus(T("21V 登录页面加载中...", "Loading 21V sign-in page..."));
+                        SetStatus(T("登录页面加载中...", "Loading sign-in page..."));
                     }
 
                     StartNavigationWatchdog(SignInPageLoadTimeoutMs);
@@ -374,8 +374,8 @@ namespace Office365CleanupTool
 
             MessageBox.Show(
                 T(
-                    $"21V 登录页面暂时未加载出来。\r\n\r\n{detail}\r\n\r\n诊断信息：\r\n{await CollectWebViewDiagnosticsAsync()}",
-                    $"The 21V sign-in page did not load.\r\n\r\n{detail}\r\n\r\nDiagnostics:\r\n{await CollectWebViewDiagnosticsAsync()}"),
+                    $"登录页面暂时未加载出来。\r\n\r\n{detail}\r\n\r\n诊断信息：\r\n{await CollectWebViewDiagnosticsAsync()}",
+                    $"The sign-in page did not load.\r\n\r\n{detail}\r\n\r\nDiagnostics:\r\n{await CollectWebViewDiagnosticsAsync()}"),
                 T("登录页加载超时", "Sign-in Page Timeout"),
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);

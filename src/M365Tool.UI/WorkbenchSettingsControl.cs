@@ -262,8 +262,8 @@ namespace Office365CleanupTool
                 $"当前实际界面语言：{GetLanguageDisplay(LocalizationService.ResolveLanguage(_settings.LanguageMode))}",
                 $"Current UI language: {GetLanguageDisplay(LocalizationService.ResolveLanguage(_settings.LanguageMode))}");
             _lblValidationState.Text = T(
-                _settings.HasCurrentVerification ? "21V 门户验证：已通过" : "21V 门户验证：未通过",
-                _settings.HasCurrentVerification ? "21V verification: Passed" : "21V verification: Not passed");
+                _settings.HasCurrentVerification ? "账户验证：已通过" : "账户验证：未通过",
+                _settings.HasCurrentVerification ? "Account verification: Passed" : "Account verification: Not passed");
             WorkbenchUi.ApplyStatusStyle(
                 _lblValidationState,
                 _settings.HasCurrentVerification ? WorkbenchTone.Success : WorkbenchTone.Warning);
@@ -286,8 +286,8 @@ namespace Office365CleanupTool
                 "This tool is built for 21Vianet Microsoft 365 operations. Sign-in verification and local logs are used only to provide tool features, troubleshooting, and support.");
             _btnOpenPrivacyPolicy.Text = T("查看完整隐私政策", "View Full Privacy Policy");
             _lblPrivacyContent.Text = T(
-                "我们可能处理的信息：\r\n• 21V 账户登录验证状态、显示名、账号标识和头像缓存，用于显示登录状态和限制未登录功能。\r\n• 工具配置、安装/卸载/修复/诊断执行日志和返回码，用于本机排障、结果查看和支持工单。\r\n• 二维码反馈或技术支持中由你主动提交的信息。\r\n\r\n数据使用原则：\r\n• 本工具不出售个人信息，不进行画像或自动化决策。\r\n• 头像、设置和日志优先保存在本机用户目录；除你主动提交反馈或工单外，工具不会主动上传日志内容。\r\n• 你可以通过注销、清理缓存或删除本机日志目录来移除本地保存的账号状态和执行记录。",
-                "Information this tool may process:\r\n• 21V account verification state, display name, account identifier, and avatar cache for sign-in status and feature gating.\r\n• Tool settings, install/uninstall/repair/diagnostic logs, and exit codes for local troubleshooting, result review, and support tickets.\r\n• Information you voluntarily submit through QR-code feedback or technical support.\r\n\r\nData use principles:\r\n• This tool does not sell personal information, build profiles, or make automated decisions.\r\n• Avatars, settings, and logs are stored locally in the user profile by default. The tool does not actively upload logs unless you submit feedback or a support ticket.\r\n• You can sign out, clear cache, or delete the local log folder to remove locally stored account state and execution records.");
+                "我们可能处理的信息：\r\n• 由世纪互联运营的Microsoft365账户登录验证状态、显示名、账号标识和头像缓存，用于显示登录状态和限制未登录功能。\r\n• 工具配置、安装/卸载/修复/诊断执行日志和返回码，用于本机排障、结果查看和支持工单。\r\n• 二维码反馈或技术支持中由你主动提交的信息。\r\n\r\n数据使用原则：\r\n• 本工具不出售个人信息，不进行画像或自动化决策。\r\n• 头像、设置和日志优先保存在本机用户目录；除你主动提交反馈或工单外，工具不会主动上传日志内容。\r\n• 你可以通过注销、清理缓存或删除本机日志目录来移除本地保存的账号状态和执行记录。",
+                "Information this tool may process:\r\n• Microsoft 365 China account sign-in verification state, display name, account identifier, and avatar cache for sign-in status and feature gating.\r\n• Tool settings, install/uninstall/repair/diagnostic logs, and exit codes for local troubleshooting, result review, and support tickets.\r\n• Information you voluntarily submit through QR-code feedback or technical support.\r\n\r\nData use principles:\r\n• This tool does not sell personal information, build profiles, or make automated decisions.\r\n• Avatars, settings, and logs are stored locally in the user profile by default. The tool does not actively upload logs unless you submit feedback or a support ticket.\r\n• You can sign out, clear cache, or delete the local log folder to remove locally stored account state and execution records.");
             BindLanguageModeOptions();
             LayoutControls();
         }

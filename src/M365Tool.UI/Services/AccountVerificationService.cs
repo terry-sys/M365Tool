@@ -65,7 +65,7 @@ namespace Office365CleanupTool.Services
                     Is21VAccount = true,
                     CloudKind = AccountCloudKind.China21V,
                     Account = trimmed,
-                    Diagnostic = T(language, "账号已通过 21V 云端点验证。", "Account validated against 21V cloud endpoint.")
+                    Diagnostic = T(language, "账号已通过 中国区云端点验证。", "Account validated against China cloud endpoint.")
                 };
             }
 
@@ -77,7 +77,7 @@ namespace Office365CleanupTool.Services
                     Is21VAccount = false,
                     CloudKind = AccountCloudKind.Global,
                     Account = trimmed,
-                    Diagnostic = T(language, "账号可在全球版端点解析，未识别为 21V 账号。", "Account resolved on global endpoint and is not recognized as 21V.")
+                    Diagnostic = T(language, "账号可在全球版端点解析，未识别为由世纪互联运营的 Microsoft 365 账号。", "Account resolved on global endpoint and is not recognized as a Microsoft 365 China account.")
                 };
             }
 

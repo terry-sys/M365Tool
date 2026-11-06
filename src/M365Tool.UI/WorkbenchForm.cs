@@ -140,7 +140,7 @@ namespace Office365CleanupTool
             _brandPanel.Paint += (_, e) => PaintBrandLogo(e.Graphics, _brandPanel.ClientRectangle);
             _lblBrandGlyph = new Label
             {
-                Text = "21V",
+                Text = "365",
                 Font = WorkbenchUi.CreateFont("Segoe UI", 23F, FontStyle.Bold),
                 ForeColor = WorkbenchUi.PrimaryColor,
                 BackColor = Color.Transparent,
@@ -186,7 +186,7 @@ namespace Office365CleanupTool
 
             _lblAppSubtitle = new Label
             {
-                Text = "21Vianet Office 运维工具",
+                Text = "21Vianet",
                 Font = WorkbenchUi.CreateUiFont(8.4F),
                 ForeColor = Color.FromArgb(106, 124, 148),
                 BackColor = Color.Transparent,
@@ -513,12 +513,11 @@ namespace Office365CleanupTool
         private void ApplyLanguage()
         {
             Text = "21Vianet Office工具箱";
-            _lblBrandGlyph.Text = "21V";
+            _lblBrandGlyph.Text = "365";
             _lblAppTitle.Text = "Office 工具箱";
-            _lblAppSubtitle.Text = T("21Vianet Office 运维工具", "21Vianet Office Toolbox");
             _btnSignIn.Text = T("登录", "Sign in");
             _btnSignOut.Text = T("注销", "Sign out");
-            _navToolTip.SetToolTip(_btnSignIn, T("登录并验证 21V 账户", "Sign in and verify 21V account"));
+            _navToolTip.SetToolTip(_btnSignIn, T("登录并验证账户", "Sign in and verify your account"));
             _navToolTip.SetToolTip(_btnSignOut, T("注销并重置当前验证状态", "Sign out and reset current verification state"));
             UpdateHeaderAccountPresentation();
 
@@ -942,7 +941,6 @@ namespace Office365CleanupTool
             WorkbenchUi.ApplyUiFont(_lblAppSubtitle, 8.5F, FontStyle.Regular, scale);
             _lblAppTitle.SetBounds(S(48), 0, S(124), S(24));
             _lblAppSubtitle.SetBounds(S(49), S(24), S(100), S(18));
-            _lblAppSubtitle.Text = "21Vianet";
             string[] order = { "home", "install", "uninstall", "channel", "repair", "teams", "outlook", "settings" };
             int[] tops = { 122, 222, 270, 318, 420, 468, 516 };
             for (int i = 0; i < order.Length; i++)
@@ -986,7 +984,7 @@ namespace Office365CleanupTool
             {
                 key = "home";
                 MessageBox.Show(
-                    T("请先点击右上角“登录”完成 21V 账户验证，再使用其他功能。", "Click Sign in at the top right to complete 21V account verification before using other pages."),
+                    T("请先点击右上角“登录”完成账户验证，再使用其他功能。", "Click Sign in at the top right to complete account verification before using other pages."),
                     T("访问受限", "Access Restricted"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
@@ -1125,7 +1123,7 @@ namespace Office365CleanupTool
             _lblAccountName.Text = isVerified && !string.IsNullOrWhiteSpace(userName)
                 ? userName : T("未登录", "Not signed in");
             _lblAccountName.ForeColor = WorkbenchUi.PrimaryTextColor;
-            _lblAccountState.Text = isVerified ? T("●  21V 已验证", "●  21V verified") : T("登录以使用全部功能", "Sign in to access all tools");
+            _lblAccountState.Text = isVerified ? T("●  已验证", "●  Verified") : T("登录以使用全部功能", "Sign in to access all tools");
             _lblAccountState.Visible = true;
             _lblAccountState.ForeColor = isVerified ? WorkbenchUi.SuccessColor : WorkbenchUi.SecondaryTextColor;
             UpdateAccountAvatar(userName);
@@ -1660,7 +1658,7 @@ namespace Office365CleanupTool
             }
 
             DialogResult confirm = MessageBox.Show(
-                T("注销将重置当前 21V 账户验证状态。是否继续？", "Signing out will reset the current 21V account verification state. Continue?"),
+                T("注销将重置当前账户验证状态。是否继续？", "Signing out will reset the current account verification state. Continue?"),
                 T("确认注销", "Confirm Sign out"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);

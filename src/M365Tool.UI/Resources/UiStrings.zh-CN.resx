@@ -73,7 +73,7 @@
 </value>
   </data>
   <data name="TXT_1F08F9DC" xml:space="preserve">
-    <value>将清除 21V 门户验证状态。是否继续？</value>
+    <value>将清除账户验证状态。是否继续？</value>
   </data>
   <data name="TXT_26715142" xml:space="preserve">
     <value>[通过]</value>
@@ -384,7 +384,7 @@
     <value>语言</value>
   </data>
   <data name="TXT_9A7E63A2" xml:space="preserve">
-    <value>配置语言与 21V 门户验证状态。</value>
+    <value>配置语言与账户验证状态。</value>
   </data>
   <data name="TXT_9C42C288" xml:space="preserve">
     <value>下一步建议：</value>
@@ -402,7 +402,7 @@
     <value>当前检测到的 Office</value>
   </data>
   <data name="TXT_A01CBA93" xml:space="preserve">
-    <value>当前状态：尚未完成 21V 门户验证。</value>
+    <value>当前状态：尚未完成账户验证。</value>
   </data>
   <data name="TXT_A02CECEB" xml:space="preserve">
     <value>确定要修复网络与激活环境吗？这会修改代理和 Internet Settings 相关配置。</value>
@@ -426,7 +426,7 @@
     <value>修改 IE / WinHTTP 相关设置与代理配置，帮助恢复 Office 激活所需网络环境。</value>
   </data>
   <data name="TXT_B11CBAB7" xml:space="preserve">
-    <value>请先完成 21V 门户登录验证，再使用其他功能。</value>
+    <value>请先完成账户登录验证，再使用其他功能。</value>
   </data>
   <data name="TXT_B390E397" xml:space="preserve">
     <value>正在检查系统环境...</value>
@@ -507,7 +507,7 @@
     <value>版本类型</value>
   </data>
   <data name="TXT_DE903B3C" xml:space="preserve">
-    <value>未完成 21V 门户登录验证，无法使用该工具。</value>
+    <value>未完成账户登录验证，无法使用该工具。</value>
   </data>
   <data name="TXT_DF1456D1" xml:space="preserve">
     <value>未检测到已登录用户</value>

@@ -9,7 +9,7 @@
     <AssemblyName>M365Tool</AssemblyName>
     <RootNamespace>M365Tool</RootNamespace>
     <Product>21Vianet Office工具箱</Product>
-    <Version>0.1.6</Version>
+    <Version>0.1.7</Version>
     <AssemblyTitle>21Vianet Office工具箱</AssemblyTitle>
     <ApplicationIcon>Assets\Icons\App\toolbox-sparkle.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>

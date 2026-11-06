@@ -1,14 +1,14 @@
 # 21Vianet Office工具箱
 
-21Vianet Office工具箱是一款面向 21Vianet / 21V Microsoft 365 运维场景的 Windows 桌面工具，用于辅助完成 Microsoft 365 Apps 安装、Office 卸载、更新频道切换、激活痕迹清理、Teams 常见问题处理和 Outlook 诊断等操作。
+21Vianet Office工具箱是一款面向 21Vianet Microsoft 365 运维场景的 Windows 桌面工具，用于辅助完成 Microsoft 365 Apps 安装、Office 卸载、更新频道切换、激活痕迹清理、Teams 常见问题处理和 Outlook 诊断等操作。
 
-> 重要说明：本项目仅适用于 21V 用户和 21V 相关 Microsoft 365 环境。工具内置了 21V 账户认证能力，并不适合作为全部 Microsoft 365 租户或环境的通用工具。
+> 重要说明：本项目仅适用于由世纪互联运营的 Microsoft 365 环境。工具内置了账户认证能力，并不适合作为全部 Microsoft 365 租户或环境的通用工具。
 >
 > 该工具会执行 Microsoft 365 管理和维护相关操作，请先在可控测试环境中验证，再用于生产设备。
 
 ## English Summary
 
-21Vianet Office Toolbox is a Windows desktop utility for Microsoft 365 operations in 21Vianet / 21V environments. It includes 21V account verification and is not intended to be a general-purpose tool for all Microsoft 365 tenants.
+21Vianet Office Toolbox is a Windows desktop utility for Microsoft 365 operations in 21Vianet environments. It verifies Microsoft 365 China accounts and is not intended to be a general-purpose tool for all Microsoft 365 tenants.
 
 ## 功能模块
 
@@ -19,14 +19,14 @@
 - **Teams 工具**：处理 Teams 缓存、登录记录和常见客户端配置异常。
 - **Outlook 工具**：执行 Outlook 扫描、诊断、日历检查和日志导出。
 - **双语界面**：支持简体中文和英文界面。
-- **访问控制**：除首页外的受限功能需要通过 21V 账户验证后使用。
+- **访问控制**：除首页外的受限功能需要通过账户验证后使用。
 
 ## 运行要求
 
 - Windows 10/11
 - 启动工具需要管理员权限，请右键选择“以管理员身份运行”
 - 需要访问 Microsoft 相关网络端点，用于验证、安装和诊断
-- 21V 账户验证窗口需要 Microsoft Edge WebView2 Runtime
+- 账户验证窗口需要 Microsoft Edge WebView2 Runtime
 
 单文件自包含测试版已包含 .NET 运行时；如果系统未安装 WebView2，仍可能需要额外安装 WebView2 Runtime。
 
@@ -34,9 +34,9 @@
 
 可以在 GitHub Release 页面下载单文件版：
 
-[下载 21Vianet Office工具箱 v0.1.6](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.6)
+[下载 21Vianet Office工具箱 v0.1.7](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.7)
 
-下载 `21VianetOfficeToolbox-portable-win-x64-v0.1.6.exe` 后直接运行即可；也可以下载同名 `.zip` 压缩包。
+下载 `21VianetOfficeToolbox-portable-win-x64-v0.1.7.exe` 后直接运行即可；也可以下载同名 `.zip` 压缩包。
 
 本次更新见 [CHANGELOG.md](CHANGELOG.md)。单文件版包含 .NET 8 运行时；EXE 尚未进行代码签名，Windows 可能显示“未知发布者”。
 
@@ -53,8 +53,7 @@ dotnet publish src/M365Tool.UI/M365Tool.csproj -c Release -r win-x64 --self-cont
 
 ## 使用注意事项
 
-- 本工具面向 21V 场景，需要完成 21V 账户验证。
-- 本工具不适用于 21V 以外的通用 Microsoft 365 环境。
+- 本工具面向由世纪互联运营的 Microsoft 365 环境，使用受限功能前需完成账户验证。
 - 执行会修改本地状态的操作前，建议先关闭 Office、Teams 和 Outlook。
 - 安装前请先查看预检查结果。
 - 测试失败时请保留导出的日志，便于后续排查。

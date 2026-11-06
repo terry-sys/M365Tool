@@ -205,7 +205,7 @@ public class UiLayoutRegressionTests
     {
         using var dialog = new MyAccountLoginVerificationForm(UiLanguage.English);
         var status = (Label)typeof(MyAccountLoginVerificationForm).GetField("_statusLabel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(dialog)!;
-        Assert.Equal("Initializing 21V sign-in page...", status.Text);
+        Assert.Equal("Initializing sign-in page...", status.Text);
     });
 
     [Theory]
