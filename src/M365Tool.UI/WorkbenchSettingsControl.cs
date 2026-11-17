@@ -134,7 +134,7 @@ namespace Office365CleanupTool
 
             _supportCard = WorkbenchUi.CreateCard(Point.Empty, Size.Empty);
             _lblSupportTitle = WorkbenchUi.CreateSectionTitle("反馈与支持", new Point(20, 16), 220);
-            _lblSupportTag = WorkbenchUi.CreateTagLabel("公众号支持", Point.Empty, 104, WorkbenchTone.Info);
+            _lblSupportTag = WorkbenchUi.CreateTagLabel("Microsoft 365 支持", Point.Empty, 104, WorkbenchTone.Info);
             _lblSupportTag.Visible = false;
             _lblSupportSummary = new Label
             {
@@ -145,7 +145,7 @@ namespace Office365CleanupTool
                 Size = new Size(640, 42)
             };
             _supportActionsPanel = WorkbenchUi.CreateInsetPanel(Point.Empty, Size.Empty);
-            _lblSupportActionsCaption = WorkbenchUi.CreateFieldLabel("可通过公众号完成", new Point(16, 12), 220);
+            _lblSupportActionsCaption = WorkbenchUi.CreateFieldLabel("技术支持渠道", new Point(16, 12), 220);
             _lblSupportActions = new Label
             {
                 Font = WorkbenchUi.CreateUiFont(9.5F),
@@ -268,17 +268,17 @@ namespace Office365CleanupTool
                 _lblValidationState,
                 _settings.HasCurrentVerification ? WorkbenchTone.Success : WorkbenchTone.Warning);
             _lblSupportTitle.Text = T("反馈与支持", "Feedback & Support");
-            _lblSupportTag.Text = T("公众号支持", "Service Entry");
+            _lblSupportTag.Text = T("Microsoft 365 支持", "Microsoft 365 Support");
             _lblSupportSummary.Text = T(
-                "扫码关注公众号，可提交使用反馈、联系我们，并开启技术支持工单。",
-                "Scan the service account QR code to submit feedback, contact us, and open a technical support ticket.");
-            _lblSupportActionsCaption.Text = T("可通过公众号完成", "Available via the service account");
+                "如需反馈工具问题、获取技术支持或咨询隐私相关事项，请联系由世纪互联运营的 Microsoft 365 技术支持。",
+                "For product feedback, technical help, or privacy inquiries, contact Microsoft 365 China support.");
+            _lblSupportActionsCaption.Text = T("技术支持渠道", "Support channels");
             _lblSupportActions.Text = T(
-                "可通过公众号完成：\r\n• 产品问题反馈\r\n• 联系支持团队\r\n• 发起技术支持工单",
-                "Use the service account to:\r\n• Submit product feedback\r\n• Contact the support team\r\n• Open a technical support ticket");
+                "组织管理员可通过 Microsoft 365 在线支持门户提交工单，或在法定工作日 9:00–18:00 拨打 400-089-0365。\r\n普通用户请先联系所属组织的 Microsoft 365 管理员。",
+                "Organization admins can open a ticket in the Microsoft 365 support portal or call 400-089-0365 from 9:00 to 18:00 on official working days.\r\nOther users should contact their organization’s Microsoft 365 admin first.");
             _lblSupportHint.Text = HasSupportQrImage()
-                ? T("建议使用微信扫码；如需放大查看，可点击右下角按钮打开二维码图片。", "We recommend scanning with WeChat. Click the button below to open the QR image in full size.")
-                : T("当前未找到二维码图片文件，请联系管理员补充公众号二维码资源。", "QR code image file was not found. Please contact the administrator to add the support QR asset.");
+                ? T("微信扫码关注「M365云服务技术支持」公众号，获取更多 Microsoft 365 技术文章和排障指南。", "Scan with WeChat to follow 「M365云服务技术支持」 for Microsoft 365 technical articles and troubleshooting guides.")
+                : T("二维码暂不可用。可在微信搜索「M365云服务技术支持」，查看技术文章和排障指南。", "QR code unavailable. Search WeChat for 「M365云服务技术支持」 to find technical articles and troubleshooting guides.");
             _btnOpenQr.Text = T("打开二维码", "Open QR");
             _lblPrivacyTitle.Text = T("隐私政策", "Privacy Policy");
             _lblPrivacySummary.Text = T(
@@ -286,8 +286,8 @@ namespace Office365CleanupTool
                 "This tool is built for 21Vianet Microsoft 365 operations. Sign-in verification and local logs are used only to provide tool features, troubleshooting, and support.");
             _btnOpenPrivacyPolicy.Text = T("查看完整隐私政策", "View Full Privacy Policy");
             _lblPrivacyContent.Text = T(
-                "我们可能处理的信息：\r\n• 由世纪互联运营的Microsoft365账户登录验证状态、显示名、账号标识和头像缓存，用于显示登录状态和限制未登录功能。\r\n• 工具配置、安装/卸载/修复/诊断执行日志和返回码，用于本机排障、结果查看和支持工单。\r\n• 二维码反馈或技术支持中由你主动提交的信息。\r\n\r\n数据使用原则：\r\n• 本工具不出售个人信息，不进行画像或自动化决策。\r\n• 头像、设置和日志优先保存在本机用户目录；除你主动提交反馈或工单外，工具不会主动上传日志内容。\r\n• 你可以通过注销、清理缓存或删除本机日志目录来移除本地保存的账号状态和执行记录。",
-                "Information this tool may process:\r\n• Microsoft 365 China account sign-in verification state, display name, account identifier, and avatar cache for sign-in status and feature gating.\r\n• Tool settings, install/uninstall/repair/diagnostic logs, and exit codes for local troubleshooting, result review, and support tickets.\r\n• Information you voluntarily submit through QR-code feedback or technical support.\r\n\r\nData use principles:\r\n• This tool does not sell personal information, build profiles, or make automated decisions.\r\n• Avatars, settings, and logs are stored locally in the user profile by default. The tool does not actively upload logs unless you submit feedback or a support ticket.\r\n• You can sign out, clear cache, or delete the local log folder to remove locally stored account state and execution records.");
+                "我们可能处理的信息：\r\n• 由世纪互联运营的Microsoft365账户登录验证状态、显示名、账号标识和头像缓存，用于显示登录状态和限制未登录功能。\r\n• 工具配置、安装/卸载/修复/诊断执行日志和返回码，用于本机排障、结果查看和支持工单。\r\n• 你通过技术支持渠道主动提交的信息。\r\n\r\n数据使用原则：\r\n• 本工具不出售个人信息，不进行画像或自动化决策。\r\n• 头像、设置和日志优先保存在本机用户目录；本工具不会主动上传日志。你可根据排障需要自行向技术支持提供日志。\r\n• 你可以通过注销、清理缓存或删除本机日志目录来移除本地保存的账号状态和执行记录。",
+                "Information this tool may process:\r\n• Microsoft 365 China account sign-in verification state, display name, account identifier, and avatar cache for sign-in status and feature gating.\r\n• Tool settings, install/uninstall/repair/diagnostic logs, and exit codes for local troubleshooting, result review, and support tickets.\r\n• Information you voluntarily submit through technical support channels.\r\n\r\nData use principles:\r\n• This tool does not sell personal information, build profiles, or make automated decisions.\r\n• Avatars, settings, and logs are stored locally in the user profile by default. The tool does not upload logs on its own. You can share logs with support when needed.\r\n• You can sign out, clear cache, or delete the local log folder to remove locally stored account state and execution records.");
             BindLanguageModeOptions();
             LayoutControls();
         }

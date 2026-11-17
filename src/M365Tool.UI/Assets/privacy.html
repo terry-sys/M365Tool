@@ -295,6 +295,48 @@
       }
 
     }
+
+    /* 锚点定位修复：为固定顶部导航预留空间，避免章节标题被覆盖。 */
+    section[id] {
+      scroll-margin-top: 92px;
+    }
+
+    /* 末尾章节预留必要的滚动空间，保证目录最后几项也能准确对齐。 */
+    .content {
+      padding-bottom: clamp(260px, 38vh, 420px);
+    }
+
+    /* 目录较长时允许单独滚动，防止较矮屏幕上末尾链接不可见。 */
+    .toc {
+      max-height: calc(100vh - 104px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    .toc a[aria-current="location"] {
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--primary);
+    }
+
+    .toc a:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 900px) {
+      .toc {
+        max-height: none;
+        overflow-y: visible;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+    }
   </style>
 </head>
 <body>
@@ -312,7 +354,7 @@
         <div class="eyebrow">Privacy Policy</div>
         <h1>隐私政策</h1>
         <p class="subtitle">本政策说明 21Vianet Office工具箱在账户验证、本地配置、WebView2 登录会话、日志和诊断信息方面的数据处理方式。我们坚持本地处理、最小必要和用户可控原则。</p>
-        <div class="updated">最后更新日期：2026 年 11 月 6 日</div>
+        <div class="updated">最后更新日期：2026 年 11 月 12 日</div>
       </div>
     </div>
 
@@ -331,6 +373,9 @@
           <li><a href="#security">数据安全</a></li>
           <li><a href="#rights">您的权利</a></li>
           <li><a href="#not-doing">我们不做的事</a></li>
+          <li><a href="#minors">未成年人个人信息保护</a></li>
+          <li><a href="#policy-updates">隐私政策的变更与通知</a></li>
+          <li><a href="#contact">联系我们</a></li>
         </ol>
       </aside>
 
@@ -478,6 +523,31 @@
             <li>不主动向无关第三方提供用户信息。</li>
           </ul>
         </section>
+
+        <section id="minors">
+          <h2>未成年人个人信息保护</h2>
+          <p>本工具主要面向企业 IT 管理员、桌面运维和技术支持人员，不以未成年人为目标用户，也不以收集未成年人个人信息为目的。</p>
+          <p>如果您未满 18 周岁，请在父母或其他监护人的指导下使用本工具。在使用诊断、日志导出及信息反馈功能时，请避免提交与排查目的无关的未成年人个人信息。</p>
+          <p>依照适用法律法规，不满 14 周岁未成年人的个人信息属于敏感个人信息。若确因特定、必要且合法的目的需要处理该类信息，我们将依法取得其父母或其他监护人的同意，制定并适用专门的个人信息处理规则，并采取严格的保护措施；在不满足上述条件时，不主动处理此类信息。</p>
+          <p>如果监护人发现通过本工具相关功能提交或留存了未成年人的个人信息，或希望了解、更正、删除相关信息，可通过本政策“联系我们”章节列明的渠道提出请求。我们将依法核实并处理。</p>
+        </section>
+
+        <section id="policy-updates">
+          <h2>隐私政策的变更与通知</h2>
+          <p>随着本工具功能、运营方式或适用法律法规发生变化，我们可能适时修订本隐私政策。修订后的政策将在本隐私政策页面公布，并更新页面中的“最后更新日期”，便于您查阅与保存。</p>
+          <p>如果变更涉及个人信息处理目的、处理方式、个人信息种类或其他可能对您的权益产生重大影响的事项，我们将在适用法律法规要求的范围内，以页面显著提示、工具内通知或其他适当方式告知变更内容；依法需要重新取得同意的，将在相关处理活动实施前另行征得所需同意。</p>
+          <p>您可以随时查阅最新版本的隐私政策。如您不同意修订后的相关信息处理规则，可停止使用相应功能或本工具，并按照“您的权利”章节管理本地保存的数据。单纯继续使用本工具，不替代依法应当单独取得的同意。</p>
+        </section>
+
+                <section id="contact">
+          <h2>联系我们</h2>
+          <p>如果您对本隐私政策有疑问、意见或建议，或需要提出个人信息查阅、更正、删除等权利请求，可以通过由世纪互联运营的 Microsoft 365 技术支持渠道与我们联系。请根据您的用户身份选择相应方式：</p>
+          <ul>
+            <li><strong>组织管理员：</strong>可通过 <a href="https://portal.partner.microsoftonline.cn/Support/SupportOverview.aspx" target="_blank" rel="noopener noreferrer">Microsoft 365 在线支持门户</a>提交技术支持工单，或拨打支持电话 <strong>400-089-0365</strong>（法定工作日 9:00–18:00），说明与 21Vianet Office 工具箱隐私政策或个人信息处理相关的问题和诉求。</li>
+            <li><strong>普通用户：</strong>上述工单提交及电话支持渠道面向组织管理员。如您不是管理员，请先联系所属组织的 Microsoft 365 管理员，由管理员通过上述渠道提交工单并协助沟通。</li>
+          </ul>
+          <p>为保障个人信息安全，请勿在工单中提交密码、验证码或与问题无关的敏感个人信息。如需核实请求人身份，我们将在必要范围内开展核实，并按照适用法律法规及支持流程处理相关请求。</p>
+        </section>
       </article>
     </div>
   </main>
@@ -488,5 +558,45 @@
       <span>本页面用于说明工具的数据处理与隐私保护方式。</span>
     </div>
   </footer>
+
+  <script>
+    // 左侧目录跟随当前可见章节高亮，不修改章节结构或正文内容。
+    (() => {
+      const links = Array.from(document.querySelectorAll('.toc a[href^="#"]'));
+      const sections = links.map(link => document.getElementById(link.getAttribute('href').slice(1)));
+      if (!links.length || sections.some(section => !section)) return;
+
+      const updateActive = () => {
+        // 与 CSS scroll-margin-top 保持一致，稍低于固定顶部导航。
+        const activationLine = 130;
+        let activeIndex = 0;
+        sections.forEach((section, index) => {
+          if (section.getBoundingClientRect().top <= activationLine) activeIndex = index;
+        });
+        links.forEach((link, index) => {
+          if (index === activeIndex) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      };
+
+      let pending = false;
+      const requestUpdate = () => {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(() => {
+          pending = false;
+          updateActive();
+        });
+      };
+      document.addEventListener('scroll', requestUpdate, { passive: true });
+      window.addEventListener('hashchange', requestUpdate);
+      window.addEventListener('resize', requestUpdate);
+      links.forEach(link => link.addEventListener('click', () => {
+        links.forEach(item => item.removeAttribute('aria-current'));
+        link.setAttribute('aria-current', 'location');
+      }));
+      updateActive();
+    })();
+  </script>
 </body>
 </html>

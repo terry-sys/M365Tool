@@ -34,9 +34,9 @@
 
 可以在 GitHub Release 页面下载单文件版：
 
-[下载 21Vianet Office工具箱 v0.1.7](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.7)
+[下载 21Vianet Office工具箱 v0.1.8](https://github.com/terry-sys/M365Tool/releases/tag/v0.1.8)
 
-下载 `21VianetOfficeToolbox-portable-win-x64-v0.1.7.exe` 后直接运行即可；也可以下载同名 `.zip` 压缩包。
+下载 `21VianetOfficeToolbox-portable-win-x64-v0.1.8.exe` 后直接运行即可；也可以下载同名 `.zip` 压缩包。
 
 本次更新见 [CHANGELOG.md](CHANGELOG.md)。单文件版包含 .NET 8 运行时；EXE 尚未进行代码签名，Windows 可能显示“未知发布者”。
 
